@@ -6,7 +6,7 @@ body {
     margin: 0;
     background-color: #f4f4f9;
     color: #333;
-    /* IMPORTANTE: Espacio para el header y footer fijos */
+    /* Espacio para header y footer fijos */
     padding-top: 60px; 
     padding-bottom: 70px; 
 }
@@ -23,7 +23,6 @@ header {
     padding: 1rem;
     text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    /* Reglas para fijar en la parte superior */
     position: fixed;
     top: 0;
     left: 0;
@@ -38,22 +37,20 @@ header h1 {
 }
 
 /* =================================
-   Footer (Barra de Menú Inferior)
+   Footer (Barra de Menú Inferior) - CORREGIDO PARA MÓVIL
    ================================= */
 footer {
     background-color: #ffffff;
-    padding: 5px 10px;
+    padding: 0 5px; /* Reducimos padding lateral */
     box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-    /* Reglas para fijar en la parte inferior */
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
     height: 65px;
     z-index: 1000;
-    /* Flexbox para alinear items */
     display: flex;
-    justify-content: space-around;
+    justify-content: center; /* Centramos el contenido */
     align-items: center;
 }
 
@@ -62,28 +59,32 @@ main {
 }
 
 /* =================================
-   Pestañas / Navegación
+   Pestañas / Navegación - CORREGIDO PARA MÓVIL
    ================================= */
 .tabs {
     display: flex;
-    flex-grow: 1;
-    justify-content: center;
+    justify-content: space-around; /* Distribuir uniformemente */
+    align-items: stretch; /* Estirar items para ocupar altura */
+    width: 100%;
     height: 100%;
 }
 
 .tab-btn {
-    flex-grow: 1;
     background: none;
     border: none;
-    border-top: 3px solid transparent; /* Indicador de selección */
+    border-top: 3px solid transparent;
     color: #8e8e93;
     font-size: 0.8rem;
     font-weight: 500;
     text-align: center;
     cursor: pointer;
     margin: 0;
-    padding: 10px 5px;
+    padding: 10px 2px; /* Reducimos padding para que quepa el texto */
     transition: color 0.2s, border-color 0.2s;
+    
+    /* Flexbox para distribuir espacio y permitir que se encojan */
+    flex: 1 1 0;
+    min-width: 0; /* MUY IMPORTANTE: Permite que los botones se encojan */
 }
 
 .tab-btn.active {
@@ -91,8 +92,9 @@ main {
     border-top-color: #007aff;
 }
 
+/* El botón de salir ya no está en el footer, pero mantenemos el estilo por si acaso */
 .logout-btn {
-    flex-shrink: 0; /* Evita que el botón se encoja */
+    flex-shrink: 0;
     width: auto;
     background: none;
     border: none;
