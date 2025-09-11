@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Delivery - Iniciar Sesión</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container">
+        <img src="logo.png" alt="Logo Mi Delivery" class="logo">
+        <h1>Iniciar Sesión</h1>
+        <form id="loginForm">
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Usuario" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <input type="password" id="password" placeholder="Contraseña" required autocomplete="current-password">
+            </div>
+            <button type="submit" id="loginButton">Entrar</button>
+        </form>
+        <p id="error-message" class="error"></p>
+    </div>
+    <script type="module" src="auth.js"></script>
+</body>
+</html>
