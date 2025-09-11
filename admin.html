@@ -3,114 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Restaurante</title>
-    <link rel="stylesheet" href="style.css?v=1.1">
+    <title>Panel de Administrador</title>
+    <link rel="stylesheet" href="style.css?v=1.2">
 </head>
 <body>
     <header>
-        <h1 id="restaurant-name">Mi Restaurante</h1>
+        <h1>Panel de Control</h1>
     </header>
 
     <main>
-        <div id="view-create" class="view active">
-            <div class="card create-order-form">
-                <h2>Crear Nuevo Pedido</h2>
-                <input type="text" id="customer-name" placeholder="Nombre del Cliente" required>
-                <input type="tel" id="customer-phone" placeholder="Teléfono del Cliente">
-                <input type="text" id="delivery-address" placeholder="Dirección de Entrega" required>
-                <div class="radio-group">
-                    <label><input type="radio" name="payment" value="Efectivo" checked> Efectivo</label>
-                    <label><input type="radio" name="payment" value="Pagado"> Pagado</label>
-                    <label><input type="radio" name="payment" value="QR"> Pago QR</label>
-                </div>
-                <hr>
-                <h2>Añadir Productos</h2>
-                <div class="product-adder">
-                    <select id="products-spinner"></select>
-                    <input type="number" id="product-quantity" value="1" min="1">
-                    <button id="add-product-btn">Añadir</button>
-                </div>
-                 <div class="product-adder">
-                    <select id="drinks-spinner"></select>
-                    <input type="number" id="drink-quantity" value="1" min="1">
-                    <button id="add-drink-btn">Añadir Bebida</button>
-                </div>
-                <hr>
-                <h2>Resumen del Pedido</h2>
-                <div id="selected-items-container"></div>
-                <input type="number" id="delivery-cost" placeholder="Costo de Delivery (₲)" required>
-                <h3 id="total-display">Total: ₲ 0</h3>
-                <button id="createOrderButton">Crear Pedido</button>
-                <p id="form-error" class="error"></p>
-            </div>
-        </div>
-
-        <div id="view-history" class="view">
-            <h2>Historial de Pedidos</h2>
-            <div id="restaurant-orders-container"></div>
-        </div>
-
-        <div id="view-products" class="view">
-            <h2>Gestión de Productos</h2>
+        <div id="view-dashboard" class="view active">
             <div class="card">
-                <h3>Añadir / Editar Producto</h3>
-                <input type="hidden" id="product-id">
-                <input type="text" id="product-name" placeholder="Nombre del Producto">
-                <input type="number" id="product-price" placeholder="Precio (₲)">
-                <select id="product-category">
-                    <option value="Producto">Producto</option>
-                    <option value="Bebida">Bebida</option>
-                </select>
-                <button id="save-product-btn">Guardar Producto</button>
-                <button id="cancel-edit-btn" class="secondary-btn" style="display:none;">Cancelar Edición</button>
+                <h2>Crear Usuarios</h2>
+                <form id="createUserForm">
+                    <div class="form-group">
+                        <input type="text" id="userName" placeholder="Nombre Completo" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="userEmail" placeholder="Correo Electrónico" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="userPassword" placeholder="Contraseña (mín. 6 caracteres)" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <select id="userRole">
+                            <option value="restaurante">Restaurante</option>
+                            <option value="repartidor">Repartidor</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="locationUrl-group" style="display: none;">
+                         <input type="text" id="userLocationUrl" placeholder="URL de Google Maps">
+                    </div>
+                    <button type="submit" id="createUserButton">Crear Usuario</button>
+                    <p id="createUserError" class="error"></p>
+                </form>
             </div>
-            <div id="products-list-container"></div>
+             <div class="card">
+                <h2>Repartidores Activos</h2>
+                <div id="active-drivers-container"></div>
+            </div>
+        </div>
+
+        <div id="view-restaurants" class="view">
+            <div class="card">
+                <h2>Lista de Restaurantes</h2>
+                <button id="exportExcelButton">Exportar a Excel</button>
+                <div id="restaurants-container"></div>
+            </div>
+        </div>
+
+        <div id="view-orders" class="view">
+            <div class="card">
+                <h2>Todos los Pedidos</h2>
+                <div id="all-orders-container"></div>
+            </div>
         </div>
 
         <div id="view-profile" class="view">
-             <div class="card">
-                <h2>Editar Perfil</h2>
-                <input type="text" id="profile-name" placeholder="Nombre del Restaurante">
-                <input type="url" id="profile-location-url" placeholder="URL de Google Maps">
-                <button id="save-profile-btn">Guardar Perfil</button>
+            <div class="card">
+                <h2>Perfil de Administrador</h2>
+                <p><strong>Nombre:</strong> <span id="adminName"></span></p>
+                <p><strong>Email:</strong> <span id="adminEmail"></span></p>
                 <button id="logoutButton" class="secondary-btn">Cerrar Sesión</button>
-             </div>
-        </div>
-    </main>
-    
-    <footer>
-        <div class="tabs">
-            <button id="tab-create" class="tab-btn active">Crear</button>
-            <button id="tab-history" class="tab-btn">Historial</button>
-            <button id="tab-products" class="tab-btn">Productos</button>
-            <button id="tab-profile" class="tab-btn">Perfil</button>
-        </div>
-        </footer>
-
-    <div id="order-detail-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Detalles del Pedido</h2>
-            <div id="modal-body"></div>
-            <div class="modal-actions">
-                 <button id="edit-order-info-btn">Editar Información</button>
-                 <button id="manage-status-btn">Gestionar Estado / Cancelar</button>
             </div>
         </div>
-    </div>
-    <div id="edit-order-modal" class="modal">
-        <div class="modal-content">
-             <span class="close-button-edit">&times;</span>
-             <h2>Editar Información del Pedido</h2>
-             <input type="hidden" id="edit-order-id">
-             <input type="text" id="edit-customer-name" placeholder="Nombre del Cliente">
-             <input type="tel" id="edit-customer-phone" placeholder="Teléfono">
-             <input type="text" id="edit-delivery-address" placeholder="Dirección">
-             <input type="number" id="edit-delivery-cost" placeholder="Costo Delivery">
-             <button id="save-order-changes-btn">Guardar Cambios</button>
-        </div>
-    </div>
+    </main>
 
-    <script type="module" src="restaurant.js"></script>
+    <footer>
+        <div class="tabs">
+            <button id="tab-dashboard" class="tab-btn active">Dashboard</button>
+            <button id="tab-restaurants" class="tab-btn">Restaurantes</button>
+            <button id="tab-orders" class="tab-btn">Pedidos</button>
+            <button id="tab-profile" class="tab-btn">Perfil</button>
+        </div>
+    </footer>
+
+    <script type="module" src="admin.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </body>
 </html>
