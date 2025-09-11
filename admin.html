@@ -1,79 +1,30 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administrador</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <header>
-        <h1>Panel de Control</h1>
-        <div class="tabs">
-            <button id="tab-dashboard" class="tab-btn active">Dashboard</button>
-            <button id="tab-restaurants" class="tab-btn">Restaurantes</button>
-            <button id="tab-orders" class="tab-btn">Pedidos</button>
-            <button id="tab-profile" class="tab-btn">Perfil</button>
-        </div>
-        <button id="logoutButton" class="logout-btn">Salir</button>
-    </header>
-
-    <main>
-        <div id="view-dashboard" class="view active">
-            <div class="card">
-                <h2>Crear Usuarios</h2>
-                <div class="form-group">
-                    <input type="text" id="userName" placeholder="Nombre Completo" required>
-                </div>
-                <div class="form-group">
-                    <input type="email" id="userEmail" placeholder="Correo Electrónico" required>
-                </div>
-                <div class="form-group">
-                    <input type="password" id="userPassword" placeholder="Contraseña (mín. 6 caracteres)" required>
-                </div>
-                <div class="form-group">
-                    <select id="userRole">
-                        <option value="restaurante">Restaurante</option>
-                        <option value="repartidor">Repartidor</option>
-                    </select>
-                </div>
-                <div class="form-group" id="locationUrl-group" style="display: none;">
-                     <input type="text" id="userLocationUrl" placeholder="URL de Google Maps">
-                </div>
-                <button id="createUserButton">Crear Usuario</button>
-                 <p id="createUserError" class="error"></p>
+<div id="view-dashboard" class="view active">
+    <div class="card">
+        <h2>Crear Usuarios</h2>
+        <form id="createUserForm">
+            <div class="form-group">
+                <input type="text" id="userName" placeholder="Nombre Completo" required>
             </div>
-             <div class="card">
-                <h2>Repartidores Activos</h2>
-                <div id="active-drivers-container"></div>
+            <div class="form-group">
+                <input type="email" id="userEmail" placeholder="Correo Electrónico" required autocomplete="off">
             </div>
-        </div>
-
-        <div id="view-restaurants" class="view">
-            <div class="card">
-                <h2>Lista de Restaurantes</h2>
-                <button id="exportExcelButton">Exportar a Excel</button>
-                <div id="restaurants-container"></div>
+            <div class="form-group">
+                <input type="password" id="userPassword" placeholder="Contraseña (mín. 6 caracteres)" required autocomplete="new-password">
             </div>
-        </div>
-
-        <div id="view-orders" class="view">
-            <div class="card">
-                <h2>Todos los Pedidos</h2>
-                <div id="all-orders-container"></div>
+            <div class="form-group">
+                <select id="userRole">
+                    <option value="restaurante">Restaurante</option>
+                    <option value="repartidor">Repartidor</option>
+                </select>
             </div>
-        </div>
-
-        <div id="view-profile" class="view">
-            <div class="card">
-                <h2>Perfil de Administrador</h2>
-                <p><strong>Nombre:</strong> <span id="adminName"></span></p>
-                <p><strong>Email:</strong> <span id="adminEmail"></span></p>
+            <div class="form-group" id="locationUrl-group">
+                 <input type="text" id="userLocationUrl" placeholder="URL de Google Maps">
             </div>
-        </div>
-    </main>
-
-    <script type="module" src="admin.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
-</body>
-</html>
+            <button type="submit" id="createUserButton">Crear Usuario</button>
+            <p id="createUserError" class="error"></p>
+        </form> </div>
+     <div class="card">
+        <h2>Repartidores Activos</h2>
+        <div id="active-drivers-container"></div>
+    </div>
+</div>

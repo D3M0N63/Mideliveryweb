@@ -61,21 +61,30 @@ function loadAdminProfile(user) {
 }
 
 // Creación de usuarios
+// Dentro de admin.js, reemplaza la función handleUserCreation con esta:
+
 function handleUserCreation() {
+    const createUserForm = document.getElementById('createUserForm'); // Seleccionamos el formulario
     const roleSelect = document.getElementById('userRole');
     const locationUrlGroup = document.getElementById('locationUrl-group');
-    const createButton = document.getElementById('createUserButton');
     const nameInput = document.getElementById('userName');
     const emailInput = document.getElementById('userEmail');
     const passwordInput = document.getElementById('userPassword');
     const locationUrlInput = document.getElementById('userLocationUrl');
     const errorMsg = document.getElementById('createUserError');
 
-    roleSelect.addEventListener('change', () => {
+    // Función para mostrar/ocultar el campo de URL
+    const toggleLocationField = () => {
         locationUrlGroup.style.display = roleSelect.value === 'restaurante' ? 'block' : 'none';
-    });
+    };
 
-    createButton.addEventListener('click', async () => {
+    roleSelect.addEventListener('change', toggleLocationField);
+    toggleLocationField(); // Llamada inicial para establecer el estado correcto
+
+    // Escuchamos el evento 'submit' del formulario
+    createUserForm.addEventListener('submit', async (event) => {
+        event.preventDefault(); // Prevenimos que la página se recargue
+
         const nombre = nameInput.value.trim();
         const email = emailInput.value.trim();
         const password = passwordInput.value.trim();
@@ -93,23 +102,25 @@ function handleUserCreation() {
         }
 
         try {
-            // Creamos el usuario en un contexto temporal de autenticación
-            const tempAuthApp = auth.app;
-            const { user } = await createUserWithEmailAndPassword(auth, email, password);
+            // Creamos el usuario en Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
             
+            // Creamos los datos para Firestore
             const userData = {
                 email: email,
                 role: role,
-                ...(role === 'restaurante' ? { nombreRestaurante: nombre, locationUrl: locationUrl } : { nombre: nombre })
+                ...(role === 'restaurante' 
+                    ? { nombreRestaurante: nombre, locationUrl: locationUrl } 
+                    : { nombre: nombre })
             };
 
+            // Guardamos los datos del usuario en Firestore
             await setDoc(doc(db, "users", user.uid), userData);
+            
             alert(`Usuario ${role} creado con éxito.`);
-            // Limpiar campos
-            nameInput.value = '';
-            emailInput.value = '';
-            passwordInput.value = '';
-            locationUrlInput.value = '';
+            createUserForm.reset(); // Limpia el formulario
+            toggleLocationField(); // Reajusta la visibilidad del campo de URL
 
         } catch (error) {
             console.error("Error al crear usuario:", error);
