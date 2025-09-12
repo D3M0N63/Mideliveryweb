@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administrador</title>
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="css/style.css?v=1.3">
 </head>
 <body>
     <header>
@@ -12,62 +12,7 @@
     </header>
 
     <main>
-        <div id="view-dashboard" class="view active">
-            <div class="card">
-                <h2>Crear Usuarios</h2>
-                <form id="createUserForm">
-                    <div class="form-group">
-                        <input type="text" id="userName" placeholder="Nombre Completo" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="email" id="userEmail" placeholder="Correo Electrónico" required autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <input type="password" id="userPassword" placeholder="Contraseña (mín. 6 caracteres)" required autocomplete="new-password">
-                    </div>
-                    <div class="form-group">
-                        <select id="userRole">
-                            <option value="restaurante">Restaurante</option>
-                            <option value="repartidor">Repartidor</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="locationUrl-group" style="display: none;">
-                         <input type="text" id="userLocationUrl" placeholder="URL de Google Maps">
-                    </div>
-                    <button type="submit" id="createUserButton">Crear Usuario</button>
-                    <p id="createUserError" class="error"></p>
-                </form>
-            </div>
-             <div class="card">
-                <h2>Repartidores Activos</h2>
-                <div id="active-drivers-container"></div>
-            </div>
-        </div>
-
-        <div id="view-restaurants" class="view">
-            <div class="card">
-                <h2>Lista de Restaurantes</h2>
-                <button id="exportExcelButton">Exportar a Excel</button>
-                <div id="restaurants-container"></div>
-            </div>
-        </div>
-
-        <div id="view-orders" class="view">
-            <div class="card">
-                <h2>Todos los Pedidos</h2>
-                <div id="all-orders-container"></div>
-            </div>
-        </div>
-
-        <div id="view-profile" class="view">
-            <div class="card">
-                <h2>Perfil de Administrador</h2>
-                <p><strong>Nombre:</strong> <span id="adminName"></span></p>
-                <p><strong>Email:</strong> <span id="adminEmail"></span></p>
-                <button id="logoutButton" class="secondary-btn">Cerrar Sesión</button>
-            </div>
-        </div>
-    </main>
+        </main>
 
     <footer>
         <div class="tabs">
@@ -78,7 +23,7 @@
         </div>
     </footer>
 
-    <script type="module" src="admin.js"></script>
+    <script type="module" src="js/admin.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </body>
 </html>

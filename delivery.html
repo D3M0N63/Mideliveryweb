@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Repartidor</title>
-    <link rel="stylesheet" href="style.css?v=1.3">
+    <link rel="stylesheet" href="css/style.css?v=1.3">
 </head>
 <body>
     <header>
@@ -12,34 +12,7 @@
     </header>
 
     <main>
-        <div id="view-available" class="view active">
-            <h2>Pedidos Disponibles</h2>
-            <div id="available-orders-container">
-                <p class="no-orders">Buscando pedidos...</p>
-            </div>
-        </div>
-
-        <div id="view-accepted" class="view">
-            <h2>Mis Pedidos</h2>
-            <div id="accepted-orders-container">
-                <p class="no-orders">No tienes pedidos aceptados.</p>
-            </div>
-        </div>
-
-        <div id="view-profile" class="view">
-            <div class="card">
-                <h2>Mi Perfil</h2>
-                <p><strong>Nombre:</strong> <span id="driver-name"></span></p>
-                <p><strong>Email:</strong> <span id="driver-email"></span></p>
-                <div class="status-toggle">
-                    <span>Estado:</span>
-                    <strong id="driver-status"></strong>
-                </div>
-                <button id="toggle-status-btn">Cambiar Estado</button>
-                <button id="logoutButton" class="secondary-btn">Cerrar Sesión</button>
-            </div>
-        </div>
-    </main>
+        </main>
 
     <footer>
         <div class="tabs">
@@ -49,18 +22,6 @@
         </div>
     </footer>
 
-    <div id="order-detail-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Detalles del Pedido</h2>
-            <div id="modal-body">
-                </div>
-            <div class="modal-actions">
-                 <button id="modal-action-btn">Aceptar</button>
-            </div>
-        </div>
-    </div>
-
-    <script type="module" src="delivery.js"></script>
+    <script type="module" src="js/delivery.js"></script>
 </body>
-</html> 
+</html>
