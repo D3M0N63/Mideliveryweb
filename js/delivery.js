@@ -104,7 +104,7 @@ function renderOrders(orderList, container) {
         return;
     }
     
-    orderList.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
+    orderList.sort((a, b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
 
     orderList.forEach(order => {
         const card = document.createElement('div');
@@ -166,8 +166,8 @@ async function showOrderDetails(orderId) {
     modal.style.display = 'block';
 }
 
+// 👇 ESTA FUNCIÓN HA SIDO COMPLETAMENTE CORREGIDA 👇
 function configureModalButtons(order) {
-    // Configurar botón principal de estado
     let mainButtonText = '';
     let mainAction = null;
     let showExtraActions = false;
@@ -182,10 +182,15 @@ function configureModalButtons(order) {
         case 'accepted':
             mainButtonText = 'Ya Recogí el Pedido';
             mainAction = () => updateOrderStatus(order.id, 'en_camino');
-            showExtraActions = true;
+            showExtraActions = true; // Mostrar acciones extra
             break;
         case 'en_camino':
             mainButtonText = 'Marcar como Entregado';
+            mainAction = () => updateOrderStatus(order.id, 'Entregado');
+            showExtraActions = true; // Mostrar acciones extra
+            break;
+        case 'recogido': // Añadido por si se usa este estado
+             mainButtonText = 'Marcar como Entregado';
             mainAction = () => updateOrderStatus(order.id, 'Entregado');
             showExtraActions = true;
             break;
@@ -209,7 +214,6 @@ function configureModalButtons(order) {
         // Navegar al restaurante
         if (order.direccionRestaurante) {
             navRestaurantBtn.onclick = () => {
-                // Si es una URL de Google Maps, la abre. Si no, busca la dirección.
                 const url = order.direccionRestaurante.startsWith('http') 
                     ? order.direccionRestaurante 
                     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.direccionRestaurante)}`;
@@ -233,7 +237,7 @@ function configureModalButtons(order) {
         // Navegar al cliente
         if (order.direccionCliente) {
             navClientBtn.onclick = () => {
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.direccionCliente)}`;
+                const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.direccionCliente)}`;
                 window.open(url, '_blank');
             };
             navClientBtn.disabled = false;
