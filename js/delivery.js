@@ -1,4 +1,4 @@
-import { auth, db } from './firebase-config.js'; 
+import { db, auth } from './firebase-config.js';
 import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
@@ -76,7 +76,6 @@ function listenToOrders() {
     const availableContainer = document.getElementById('available-orders-container');
     const acceptedContainer = document.getElementById('accepted-orders-container');
     
-    // Escuchar todos los pedidos relevantes en tiempo real
     const q = query(collection(db, "pedidos"));
 
     onSnapshot(q, (snapshot) => {
@@ -86,8 +85,9 @@ function listenToOrders() {
         snapshot.forEach(doc => {
             const order = { id: doc.id, ...doc.data() };
             
-            // Pedidos disponibles para cualquier repartidor
-            if (order.estado === 'available' || order.estado === 'ready_for_pickup') {
+            // 👇 LA CORRECCIÓN ESTÁ AQUÍ 👇
+            // Ahora también busca el estado "Pendiente"
+            if (['available', 'ready_for_pickup', 'Pendiente'].includes(order.estado)) {
                 availableOrders.push(order);
             } 
             // Pedidos aceptados POR ESTE repartidor
@@ -108,6 +108,8 @@ function renderOrders(orderList, container) {
         return;
     }
     
+    orderList.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
+
     orderList.forEach(order => {
         const card = document.createElement('div');
         card.className = 'order-card';
@@ -120,7 +122,6 @@ function renderOrders(orderList, container) {
         container.appendChild(card);
     });
 
-    // Añadir listeners a los botones "Ver Detalles"
     container.querySelectorAll('.action-btn').forEach(btn => {
         btn.addEventListener('click', () => showOrderDetails(btn.dataset.id));
     });
@@ -146,9 +147,18 @@ async function showOrderDetails(orderId) {
     if (!orderDoc.exists()) return;
 
     const order = { id: orderDoc.id, ...orderDoc.data() };
+    
+    // Obtenemos el nombre del restaurante para mostrarlo
+    let restauranteName = 'Restaurante';
+    if(order.restauranteId) {
+        const restDoc = await getDoc(doc(db, "users", order.restauranteId));
+        if(restDoc.exists()) {
+            restauranteName = restDoc.data().nombreRestaurante || 'Restaurante';
+        }
+    }
 
     modalBody.innerHTML = `
-        <p><strong>Restaurante:</strong> ${order.restauranteName || 'N/A'}</p>
+        <p><strong>Restaurante:</strong> ${restauranteName}</p>
         <p><strong>Recoger en:</strong> ${order.direccionRestaurante || 'No especificada'}</p>
         <hr>
         <p><strong>Cliente:</strong> ${order.nombreCliente}</p>
@@ -157,9 +167,7 @@ async function showOrderDetails(orderId) {
         <p><strong>Método de pago:</strong> ${order.metodoPago || 'Efectivo'}</p>
     `;
 
-    // Configurar el botón de acción del modal
     configureModalButton(order);
-
     modal.style.display = 'block';
 }
 
@@ -170,6 +178,7 @@ function configureModalButton(order) {
     switch(order.estado) {
         case 'available':
         case 'ready_for_pickup':
+        case 'Pendiente': // Añadido aquí también
             buttonText = 'Aceptar Pedido';
             action = () => updateOrderStatus(order.id, 'accepted', { repartidorID: currentUserId });
             break;
@@ -182,23 +191,17 @@ function configureModalButton(order) {
             action = () => updateOrderStatus(order.id, 'recogido');
             break;
         case 'recogido':
-            buttonText = 'Iniciar Navegación';
-            action = () => {
-                const lat = order.latitud; // Asegúrate de que los campos se llamen así en Firestore
-                const lng = order.longitud;
-                if (lat && lng) {
-                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
-                } else {
-                    alert('Las coordenadas de este pedido no están disponibles.');
-                }
-            };
+            buttonText = 'Marcar como Entregado'; // Cambiado para un flujo más simple
+            action = () => updateOrderStatus(order.id, 'Entregado');
             break;
         default:
             buttonText = 'Ver Detalles';
+            modalActionBtn.style.display = 'none'; // Ocultar botón si no hay acción
             action = () => {};
             break;
     }
 
+    modalActionBtn.style.display = 'block';
     modalActionBtn.textContent = buttonText;
     modalActionBtn.onclick = action;
 }
