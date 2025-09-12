@@ -39,7 +39,7 @@ function setupTabs() {
             });
         });
     });
-    document.getElementById('view-available').style.display = 'block'; // Vista inicial
+    document.getElementById('view-available').style.display = 'block';
 }
 
 // --- Perfil del Repartidor ---
@@ -70,7 +70,6 @@ async function loadDriverProfile() {
     });
 }
 
-
 // --- Lógica de Pedidos ---
 function listenToOrders() {
     const availableContainer = document.getElementById('available-orders-container');
@@ -85,12 +84,9 @@ function listenToOrders() {
         snapshot.forEach(doc => {
             const order = { id: doc.id, ...doc.data() };
             
-            // 👇 LA CORRECCIÓN ESTÁ AQUÍ 👇
-            // Ahora también busca el estado "Pendiente"
             if (['available', 'ready_for_pickup', 'Pendiente'].includes(order.estado)) {
                 availableOrders.push(order);
             } 
-            // Pedidos aceptados POR ESTE repartidor
             else if (order.repartidorID === currentUserId && ['accepted', 'en_camino', 'recogido'].includes(order.estado)) {
                 acceptedOrders.push(order);
             }
@@ -104,7 +100,7 @@ function listenToOrders() {
 function renderOrders(orderList, container) {
     container.innerHTML = '';
     if (orderList.length === 0) {
-        container.innerHTML = `<p class="no-orders">${container.id.includes('available') ? 'No hay pedidos disponibles por el momento.' : 'No tienes pedidos en curso.'}</p>`;
+        container.innerHTML = `<p class="no-orders">${container.id.includes('available') ? 'No hay pedidos disponibles.' : 'No tienes pedidos en curso.'}</p>`;
         return;
     }
     
@@ -127,11 +123,11 @@ function renderOrders(orderList, container) {
     });
 }
 
-
-// --- Lógica de la Ventana Modal (Detalles del Pedido) ---
+// --- Lógica de la Ventana Modal ---
 const modal = document.getElementById('order-detail-modal');
 const modalBody = document.getElementById('modal-body');
 const modalActionBtn = document.getElementById('modal-action-btn');
+const extraActionsContainer = document.getElementById('modal-extra-actions');
 
 function setupModalListeners() {
     modal.querySelector('.close-button').onclick = () => modal.style.display = 'none';
@@ -148,7 +144,6 @@ async function showOrderDetails(orderId) {
 
     const order = { id: orderDoc.id, ...orderDoc.data() };
     
-    // Obtenemos el nombre del restaurante para mostrarlo
     let restauranteName = 'Restaurante';
     if(order.restauranteId) {
         const restDoc = await getDoc(doc(db, "users", order.restauranteId));
@@ -167,43 +162,85 @@ async function showOrderDetails(orderId) {
         <p><strong>Método de pago:</strong> ${order.metodoPago || 'Efectivo'}</p>
     `;
 
-    configureModalButton(order);
+    configureModalButtons(order);
     modal.style.display = 'block';
 }
 
-function configureModalButton(order) {
-    let buttonText = '';
-    let action = null;
+function configureModalButtons(order) {
+    // Configurar botón principal de estado
+    let mainButtonText = '';
+    let mainAction = null;
+    let showExtraActions = false;
 
     switch(order.estado) {
         case 'available':
         case 'ready_for_pickup':
-        case 'Pendiente': // Añadido aquí también
-            buttonText = 'Aceptar Pedido';
-            action = () => updateOrderStatus(order.id, 'accepted', { repartidorID: currentUserId });
+        case 'Pendiente':
+            mainButtonText = 'Aceptar Pedido';
+            mainAction = () => updateOrderStatus(order.id, 'accepted', { repartidorID: currentUserId });
             break;
         case 'accepted':
-            buttonText = 'En Camino a Entregar';
-            action = () => updateOrderStatus(order.id, 'en_camino');
+            mainButtonText = 'Ya Recogí el Pedido';
+            mainAction = () => updateOrderStatus(order.id, 'en_camino');
+            showExtraActions = true;
             break;
         case 'en_camino':
-            buttonText = 'Ya Recogí el Pedido';
-            action = () => updateOrderStatus(order.id, 'recogido');
-            break;
-        case 'recogido':
-            buttonText = 'Marcar como Entregado'; // Cambiado para un flujo más simple
-            action = () => updateOrderStatus(order.id, 'Entregado');
+            mainButtonText = 'Marcar como Entregado';
+            mainAction = () => updateOrderStatus(order.id, 'Entregado');
+            showExtraActions = true;
             break;
         default:
-            buttonText = 'Ver Detalles';
-            modalActionBtn.style.display = 'none'; // Ocultar botón si no hay acción
-            action = () => {};
+            mainButtonText = 'Cerrar';
+            mainAction = () => { modal.style.display = 'none'; };
             break;
     }
 
-    modalActionBtn.style.display = 'block';
-    modalActionBtn.textContent = buttonText;
-    modalActionBtn.onclick = action;
+    modalActionBtn.textContent = mainButtonText;
+    modalActionBtn.onclick = mainAction;
+
+    // Configurar botones secundarios (navegación y contacto)
+    extraActionsContainer.style.display = showExtraActions ? 'flex' : 'none';
+    
+    if (showExtraActions) {
+        const navRestaurantBtn = document.getElementById('navigate-restaurant-btn');
+        const contactClientBtn = document.getElementById('contact-client-btn');
+        const navClientBtn = document.getElementById('navigate-client-btn');
+
+        // Navegar al restaurante
+        if (order.direccionRestaurante) {
+            navRestaurantBtn.onclick = () => {
+                // Si es una URL de Google Maps, la abre. Si no, busca la dirección.
+                const url = order.direccionRestaurante.startsWith('http') 
+                    ? order.direccionRestaurante 
+                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.direccionRestaurante)}`;
+                window.open(url, '_blank');
+            };
+            navRestaurantBtn.disabled = false;
+        } else {
+            navRestaurantBtn.disabled = true;
+        }
+
+        // Contactar al cliente
+        if (order.telefonoCliente) {
+            contactClientBtn.onclick = () => {
+                window.location.href = `tel:${order.telefonoCliente}`;
+            };
+            contactClientBtn.disabled = false;
+        } else {
+            contactClientBtn.disabled = true;
+        }
+
+        // Navegar al cliente
+        if (order.direccionCliente) {
+            navClientBtn.onclick = () => {
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.direccionCliente)}`;
+                window.open(url, '_blank');
+            };
+            navClientBtn.disabled = false;
+        } else {
+            navClientBtn.disabled = true;
+        }
+    }
 }
 
 async function updateOrderStatus(orderId, newStatus, extraData = {}) {

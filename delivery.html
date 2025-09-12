@@ -12,20 +12,6 @@
     </header>
 
     <main>
-        </main><!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Repartidor</title>
-    <link rel="stylesheet" href="css/style.css?v=1.3">
-</head>
-<body>
-    <header>
-        <h1>Mi Delivery</h1>
-    </header>
-
-    <main>
         <div id="view-available" class="view active">
             <h2>Pedidos Disponibles</h2>
             <div id="available-orders-container">
@@ -69,23 +55,18 @@
             <h2>Detalles del Pedido</h2>
             <div id="modal-body">
                 </div>
+            
+            <div id="modal-extra-actions" class="modal-actions secondary-actions">
+                <button id="navigate-restaurant-btn">Navegar al Restaurante</button>
+                <button id="contact-client-btn">Contactar Cliente</button>
+                <button id="navigate-client-btn">Navegar al Cliente</button>
+            </div>
+
             <div class="modal-actions">
                  <button id="modal-action-btn">Aceptar</button>
             </div>
         </div>
     </div>
-
-    <script type="module" src="js/delivery.js"></script>
-</body>
-</html>
-
-    <footer>
-        <div class="tabs">
-            <button id="tab-available" class="tab-btn active">Disponibles</button>
-            <button id="tab-accepted" class="tab-btn">Mis Pedidos</button>
-            <button id="tab-profile" class="tab-btn">Perfil</button>
-        </div>
-    </footer>
 
     <script type="module" src="js/delivery.js"></script>
 </body>

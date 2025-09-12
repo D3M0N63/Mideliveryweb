@@ -144,3 +144,29 @@ button:hover { background-color: #005ecb; }
 .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 12px; }
 .close-button, .close-button-edit { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
 .modal-actions { display: flex; gap: 1rem; margin-top: 1rem; }
+
+
+.secondary-actions {
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column; /* Apila los botones verticalmente */
+    gap: 0.5rem;
+}
+
+.secondary-actions button {
+    background-color: #f0f0f0;
+    color: #333;
+    font-weight: normal;
+}
+
+.secondary-actions button:hover {
+    background-color: #e0e0e0;
+}
+
+.secondary-actions button:disabled {
+    background-color: #f9f9f9;
+    color: #ccc;
+    cursor: not-allowed;
+}
