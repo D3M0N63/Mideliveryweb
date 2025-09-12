@@ -1,148 +1,216 @@
 import { db, auth } from './firebase-config.js';
-import { collection, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-const ordersContainer = document.getElementById('orders-container');
-const availableTab = document.getElementById('availableTab');
-const acceptedTab = document.getElementById('acceptedTab');
-const logoutButton = document.getElementById('logoutButton');
+let currentUserId = null;
+let currentUserStatus = 'inactivo';
 
-let currentView = 'available'; // Vista por defecto
-
-// --- Función para mostrar los pedidos en la UI ---
-const renderOrders = (orders) => {
-    ordersContainer.innerHTML = ''; // Limpiar la lista
-    if (orders.length === 0) {
-        ordersContainer.innerHTML = '<p class="no-orders">No hay pedidos en esta sección.</p>';
-        return;
-    }
-    orders.forEach(order => {
-        const card = document.createElement('div');
-        card.className = 'order-card';
-        card.innerHTML = `
-            <h3>Pedido #${order.id.substring(0, 6)}</h3>
-            <p><strong>Restaurante:</strong> ${order.restaurantName}</p>
-            <p><strong>Destino:</strong> ${order.destinationAddress}</p>
-            <p class="price">$${order.price.toFixed(2)}</p>
-            <button class="action-btn" data-id="${order.id}" data-status="${order.status}">
-                ${getButtonTextForStatus(order.status)}
-            </button>
-        `;
-        ordersContainer.appendChild(card);
-    });
-};
-
-// --- Función para obtener el texto del botón según el estado ---
-const getButtonTextForStatus = (status) => {
-    switch (status) {
-        case 'available':
-        case 'ready_for_pickup':
-            return 'Aceptar Pedido';
-        case 'accepted':
-            return 'En Camino';
-        case 'en_camino':
-            return 'Recogido';
-        case 'recogido':
-            return 'Iniciar Navegación';
-        default:
-            return 'Ver Detalles';
-    }
-};
-
-// --- Función para actualizar el estado de un pedido ---
-const updateOrderStatus = async (orderId, currentStatus) => {
-    let newStatus = '';
-    switch (currentStatus) {
-        case 'available':
-        case 'ready_for_pickup':
-            newStatus = 'accepted';
-            break;
-        case 'accepted':
-            newStatus = 'en_camino';
-            break;
-        case 'en_camino':
-            newStatus = 'recogido';
-            break;
-        case 'recogido':
-            newStatus = 'completed'; // Asumimos que la navegación es el paso final
-            break;
-        default:
-            return;
-    }
-
-    const orderRef = doc(db, 'orders', orderId);
-    try {
-        await updateDoc(orderRef, { status: newStatus });
-        alert(`Pedido actualizado a: ${newStatus}`);
-    } catch (e) {
-        console.error("Error al actualizar el pedido: ", e);
-        alert("No se pudo actualizar el pedido.");
-    }
-};
-
-// --- Lógica para manejar clics en los botones de acción ---
-ordersContainer.addEventListener('click', (e) => {
-    if (e.target.classList.contains('action-btn')) {
-        const orderId = e.target.dataset.id;
-        const status = e.target.dataset.status;
-        if (status === 'recogido') {
-            // Lógica de navegación (abrir Google Maps)
-            const orderCard = e.target.closest('.order-card');
-            // Necesitamos obtener latitud y longitud, asumimos que están en el objeto order
-            // Esto requeriría una búsqueda del pedido completo si no se almacena en el DOM
-            alert("Redirigiendo a Google Maps...");
-        } else {
-            updateOrderStatus(orderId, status);
-        }
-    }
-});
-
-
-// --- Escuchar cambios en la colección de pedidos ---
-const listenToOrders = (userId) => {
-    const q = query(collection(db, "orders"));
-    onSnapshot(q, (querySnapshot) => {
-        const allOrders = [];
-        querySnapshot.forEach((doc) => {
-            allOrders.push({ id: doc.id, ...doc.data() });
-        });
-
-        // Filtrar pedidos según la vista actual
-        let filteredOrders;
-        if (currentView === 'available') {
-            filteredOrders = allOrders.filter(o => o.status === 'available' || o.status === 'ready_for_pickup');
-        } else {
-            // En "Aceptados" mostramos los que no están disponibles ni completados
-            filteredOrders = allOrders.filter(o => o.status !== 'available' && o.status !== 'ready_for_pickup' && o.status !== 'completed');
-        }
-        renderOrders(filteredOrders);
-    });
-};
-
-// --- Control de Pestañas ---
-availableTab.addEventListener('click', () => {
-    currentView = 'available';
-    availableTab.classList.add('active');
-    acceptedTab.classList.remove('active');
-    listenToOrders(auth.currentUser.uid); // Recargar datos para la nueva vista
-});
-
-acceptedTab.addEventListener('click', () => {
-    currentView = 'accepted';
-    acceptedTab.classList.add('active');
-    availableTab.classList.remove('active');
-    listenToOrders(auth.currentUser.uid); // Recargar datos para la nueva vista
-});
-
-// --- Autenticación y cierre de sesión ---
-onAuthStateChanged(auth, (user) => {
+// --- Autenticación y Carga Inicial ---
+onAuthStateChanged(auth, async (user) => {
     if (user) {
-        listenToOrders(user.uid);
+        currentUserId = user.uid;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().role === 'repartidor') {
+            setupTabs();
+            loadDriverProfile();
+            listenToOrders();
+            setupModalListeners();
+        } else {
+            alert("Acceso denegado. Esta cuenta no es de repartidor.");
+            signOut(auth);
+            window.location.href = 'index.html';
+        }
     } else {
         window.location.href = 'index.html';
     }
 });
 
-logoutButton.addEventListener('click', () => {
-    signOut(auth).catch((error) => console.error("Error al cerrar sesión:", error));
-});
+// --- Pestañas ---
+function setupTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const views = document.querySelectorAll('.view');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const targetViewId = 'view-' + tab.id.split('-')[1];
+            views.forEach(view => {
+                view.style.display = view.id === targetViewId ? 'block' : 'none';
+            });
+        });
+    });
+    document.getElementById('view-available').style.display = 'block'; // Vista inicial
+}
+
+// --- Perfil del Repartidor ---
+async function loadDriverProfile() {
+    const userDocRef = doc(db, "users", currentUserId);
+    onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const userData = docSnap.data();
+            document.getElementById('driver-name').textContent = userData.nombre || 'N/A';
+            document.getElementById('driver-email').textContent = userData.email;
+            const statusEl = document.getElementById('driver-status');
+            currentUserStatus = userData.status || 'inactivo';
+            statusEl.textContent = currentUserStatus.charAt(0).toUpperCase() + currentUserStatus.slice(1);
+            statusEl.className = `status-label ${currentUserStatus}`;
+
+            const toggleBtn = document.getElementById('toggle-status-btn');
+            toggleBtn.textContent = currentUserStatus === 'activo' ? 'Pasar a Inactivo' : 'Activarme para Pedidos';
+        }
+    });
+
+    document.getElementById('toggle-status-btn').addEventListener('click', async () => {
+        const newStatus = currentUserStatus === 'activo' ? 'inactivo' : 'activo';
+        await updateDoc(userDocRef, { status: newStatus });
+    });
+    
+    document.getElementById('logoutButton').addEventListener('click', () => {
+        signOut(auth);
+    });
+}
+
+
+// --- Lógica de Pedidos ---
+function listenToOrders() {
+    const availableContainer = document.getElementById('available-orders-container');
+    const acceptedContainer = document.getElementById('accepted-orders-container');
+    
+    // Escuchar todos los pedidos relevantes en tiempo real
+    const q = query(collection(db, "pedidos"));
+
+    onSnapshot(q, (snapshot) => {
+        let availableOrders = [];
+        let acceptedOrders = [];
+
+        snapshot.forEach(doc => {
+            const order = { id: doc.id, ...doc.data() };
+            
+            // Pedidos disponibles para cualquier repartidor
+            if (order.estado === 'available' || order.estado === 'ready_for_pickup') {
+                availableOrders.push(order);
+            } 
+            // Pedidos aceptados POR ESTE repartidor
+            else if (order.repartidorID === currentUserId && ['accepted', 'en_camino', 'recogido'].includes(order.estado)) {
+                acceptedOrders.push(order);
+            }
+        });
+
+        renderOrders(availableOrders, availableContainer);
+        renderOrders(acceptedOrders, acceptedContainer);
+    });
+}
+
+function renderOrders(orderList, container) {
+    container.innerHTML = '';
+    if (orderList.length === 0) {
+        container.innerHTML = `<p class="no-orders">${container.id.includes('available') ? 'No hay pedidos disponibles por el momento.' : 'No tienes pedidos en curso.'}</p>`;
+        return;
+    }
+    
+    orderList.forEach(order => {
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        card.innerHTML = `
+            <h3>Pedido de: ${order.restauranteName || 'Restaurante'}</h3>
+            <p><strong>Destino:</strong> ${order.direccionCliente}</p>
+            <p class="price">₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
+            <button class="action-btn" data-id="${order.id}">Ver Detalles</button>
+        `;
+        container.appendChild(card);
+    });
+
+    // Añadir listeners a los botones "Ver Detalles"
+    container.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', () => showOrderDetails(btn.dataset.id));
+    });
+}
+
+
+// --- Lógica de la Ventana Modal (Detalles del Pedido) ---
+const modal = document.getElementById('order-detail-modal');
+const modalBody = document.getElementById('modal-body');
+const modalActionBtn = document.getElementById('modal-action-btn');
+
+function setupModalListeners() {
+    modal.querySelector('.close-button').onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+}
+
+async function showOrderDetails(orderId) {
+    const orderDoc = await getDoc(doc(db, "pedidos", orderId));
+    if (!orderDoc.exists()) return;
+
+    const order = { id: orderDoc.id, ...orderDoc.data() };
+
+    modalBody.innerHTML = `
+        <p><strong>Restaurante:</strong> ${order.restauranteName || 'N/A'}</p>
+        <p><strong>Recoger en:</strong> ${order.direccionRestaurante || 'No especificada'}</p>
+        <hr>
+        <p><strong>Cliente:</strong> ${order.nombreCliente}</p>
+        <p><strong>Entregar en:</strong> ${order.direccionCliente}</p>
+        <p><strong>Total a cobrar:</strong> ₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
+        <p><strong>Método de pago:</strong> ${order.metodoPago || 'Efectivo'}</p>
+    `;
+
+    // Configurar el botón de acción del modal
+    configureModalButton(order);
+
+    modal.style.display = 'block';
+}
+
+function configureModalButton(order) {
+    let buttonText = '';
+    let action = null;
+
+    switch(order.estado) {
+        case 'available':
+        case 'ready_for_pickup':
+            buttonText = 'Aceptar Pedido';
+            action = () => updateOrderStatus(order.id, 'accepted', { repartidorID: currentUserId });
+            break;
+        case 'accepted':
+            buttonText = 'En Camino a Entregar';
+            action = () => updateOrderStatus(order.id, 'en_camino');
+            break;
+        case 'en_camino':
+            buttonText = 'Ya Recogí el Pedido';
+            action = () => updateOrderStatus(order.id, 'recogido');
+            break;
+        case 'recogido':
+            buttonText = 'Iniciar Navegación';
+            action = () => {
+                const lat = order.latitud; // Asegúrate de que los campos se llamen así en Firestore
+                const lng = order.longitud;
+                if (lat && lng) {
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                } else {
+                    alert('Las coordenadas de este pedido no están disponibles.');
+                }
+            };
+            break;
+        default:
+            buttonText = 'Ver Detalles';
+            action = () => {};
+            break;
+    }
+
+    modalActionBtn.textContent = buttonText;
+    modalActionBtn.onclick = action;
+}
+
+async function updateOrderStatus(orderId, newStatus, extraData = {}) {
+    const orderRef = doc(db, "pedidos", orderId);
+    try {
+        await updateDoc(orderRef, { estado: newStatus, ...extraData });
+        alert(`Pedido actualizado a: ${newStatus}`);
+        modal.style.display = 'none';
+    } catch (e) {
+        console.error("Error al actualizar estado: ", e);
+        alert("No se pudo actualizar el estado del pedido.");
+    }
+}
