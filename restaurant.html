@@ -10,10 +10,16 @@
     <div class="container">
         <header>
             <h1 id="restaurant-name">Mi Restaurante</h1>
-            </header>
+        </header>
         
         <main>
-            <div id="view-create" class="view">
+            <div id="view-web" class="view">
+                <h2>Nuevos Pedidos de la Web</h2>
+                <div id="web-orders-container">
+                    </div>
+            </div>
+
+            <div id="view-create" class="view" style="display:none;">
                 <form id="create-order-form" class="card">
                     <h2>Datos del Cliente</h2>
                     <div class="form-row">
@@ -87,12 +93,13 @@
         </main>
     </div>
 
-    <nav class="tabs">
-        <button id="btn-create" class="tab-btn active">Crear Pedido</button>
-        <button id="btn-products" class="tab-btn">Mis Productos</button>
+    <footer class="tabs">
+        <button id="btn-web" class="tab-btn">Pedidos Web</button>
+        <button id="btn-create" class="tab-btn">Crear Pedido</button>
+        <button id="btn-products" class="tab-btn">Productos</button>
         <button id="btn-history" class="tab-btn">Historial</button>
-        <button id="btn-profile" class="tab-btn">Mi Perfil</button>
-    </nav>
+        <button id="btn-profile" class="tab-btn">Perfil</button>
+    </footer>
 
     <div id="order-detail-modal" class="modal">
         <div class="modal-content">

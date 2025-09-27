@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 let currentUserId = null;
 let products = [];
 let selectedItems = [];
+let restaurantLocationUrl = '';
 
 // --- Autenticación y Carga Inicial ---
 onAuthStateChanged(auth, async (user) => {
@@ -12,11 +13,13 @@ onAuthStateChanged(auth, async (user) => {
         currentUserId = user.uid;
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists() && userDoc.data().role === 'restaurante') {
-            document.getElementById('restaurant-name').textContent = userDoc.data().nombreRestaurante || "Mi Restaurante";
+            const userData = userDoc.data();
+            restaurantLocationUrl = userData.locationUrl || '';
+            document.getElementById('restaurant-name').textContent = userData.nombreRestaurante || "Mi Restaurante";
             setupTabs();
             loadRestaurantData();
         } else {
-            alert("Acceso denegado. No tienes el rol de restaurante.");
+            alert("Acceso denegado.");
             window.location.href = 'index.html';
         }
     } else {
@@ -25,6 +28,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function loadRestaurantData() {
+    listenToWebOrders(); // NUEVA FUNCIÓN
     listenToProducts();
     listenToOrders();
     loadProfile();
@@ -46,9 +50,60 @@ function setupTabs() {
             });
         });
     });
-    // Forzar la visualización de la primera pestaña por defecto
-    document.getElementById('view-create').style.display = 'block';
-    document.getElementById('btn-create').classList.add('active');
+    // Forzar la visualización de la primera pestaña (Pedidos Web)
+    document.getElementById('view-web').style.display = 'block';
+    document.getElementById('btn-web').classList.add('active');
+}
+
+// --- NUEVA SECCIÓN: Pedidos Web ---
+function listenToWebOrders() {
+    const container = document.getElementById('web-orders-container');
+    const q = query(collection(db, "pedidos"), where("restauranteId", "==", null), where("estado", "==", "Pendiente"));
+
+    onSnapshot(q, (snapshot) => {
+        container.innerHTML = '';
+        if (snapshot.empty) {
+            container.innerHTML = '<p class="card">No hay nuevos pedidos de la web por el momento.</p>';
+            return;
+        }
+        snapshot.forEach(docSnap => {
+            const order = { id: docSnap.id, ...docSnap.data() };
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            const itemsList = (order.items || []).map(item => `<li>${item.cantidad}x ${item.nombre}</li>`).join('');
+            card.innerHTML = `
+                <h3>Pedido para: ${order.nombreCliente}</h3>
+                <p><strong>Dirección:</strong> ${order.direccionCliente}</p>
+                <p><strong>Total:</strong> ₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
+                <ul>${itemsList}</ul>
+                <button class="action-btn accept-order-btn" data-id="${order.id}">Aceptar Pedido</button>
+            `;
+            container.appendChild(card);
+        });
+        container.querySelectorAll('.accept-order-btn').forEach(btn => {
+            btn.onclick = () => acceptOrder(btn.dataset.id);
+        });
+    });
+}
+
+async function acceptOrder(orderId) {
+    const orderRef = doc(db, "pedidos", orderId);
+    try {
+        const orderDoc = await getDoc(orderRef);
+        if (orderDoc.exists() && orderDoc.data().restauranteId) {
+            alert("Este pedido ya fue tomado por otro restaurante.");
+            return;
+        }
+        await updateDoc(orderRef, {
+            restauranteId: currentUserId,
+            estado: "available",
+            direccionRestaurante: restaurantLocationUrl
+        });
+        alert("¡Pedido aceptado! Ahora lo encontrarás en tu historial.");
+    } catch (error) {
+        console.error("Error al aceptar el pedido: ", error);
+        alert("Hubo un error al intentar aceptar el pedido.");
+    }
 }
 
 
@@ -93,14 +148,11 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
     const nombre = document.getElementById('product-name').value.trim();
     const precio = parseFloat(document.getElementById('product-price').value);
     const categoria = document.getElementById('product-category').value;
-
     if (!nombre || isNaN(precio)) {
         alert("Por favor, completa el nombre y el precio del producto.");
         return;
     }
-
     const productData = { nombre, precio, categoria };
-    
     try {
         if (id) {
             await updateDoc(doc(db, `users/${currentUserId}/productos`, id), productData);
@@ -152,7 +204,6 @@ function populateProductSpinners() {
     const drinksSpinner = document.getElementById('drinks-spinner');
     productsSpinner.innerHTML = '<option value="">Selecciona un producto...</option>';
     drinksSpinner.innerHTML = '<option value="">Selecciona una bebida...</option>';
-
     products.forEach(p => {
         const option = new Option(`${p.nombre} - ₲ ${p.precio.toLocaleString('es-PY')}`, p.id);
         if (p.categoria === 'Producto') {
@@ -182,7 +233,6 @@ function addItemToOrder(productId, quantity) {
     if (!productId || isNaN(quantity) || quantity <= 0) return;
     const product = products.find(p => p.id === productId);
     if (!product) return;
-
     const existingItem = selectedItems.find(item => item.id === productId);
     if (existingItem) {
         existingItem.quantity += quantity;
@@ -228,19 +278,13 @@ async function createOrder() {
     const nombreCliente = document.getElementById('customer-name').value.trim();
     const direccionCliente = document.getElementById('delivery-address').value.trim();
     const costoDelivery = parseFloat(document.getElementById('delivery-cost').value);
-
     if (!nombreCliente || !direccionCliente || isNaN(costoDelivery) || selectedItems.length === 0) {
         formError.textContent = 'Completa todos los campos y añade al menos un producto.';
         return;
     }
-    
     const subtotal = selectedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
     const total = subtotal + costoDelivery;
     const metodoPago = document.querySelector('input[name="payment"]:checked').value;
-    
-    const userDoc = await getDoc(doc(db, "users", currentUserId));
-    const restauranteLocationUrl = userDoc.data().locationUrl;
-    
     const nuevoPedido = {
         nombreCliente,
         direccionCliente,
@@ -248,17 +292,15 @@ async function createOrder() {
         costoDelivery,
         total,
         restauranteId: currentUserId,
-        direccionRestaurante: restauranteLocationUrl,
+        direccionRestaurante: restaurantLocationUrl,
         estado: "Pendiente",
         timestamp: serverTimestamp(),
         metodoPago,
         items: selectedItems.map(item => ({ nombre: item.nombre, cantidad: item.quantity, precio: item.precio }))
     };
-
     try {
         await addDoc(collection(db, "pedidos"), nuevoPedido);
         alert("Pedido creado con éxito.");
-        // Reset form
         document.getElementById('create-order-form').reset();
         selectedItems = [];
         renderSelectedItems();
@@ -274,11 +316,10 @@ async function createOrder() {
 function listenToOrders() {
     const container = document.getElementById('restaurant-orders-container');
     const q = query(collection(db, "pedidos"), where("restauranteId", "==", currentUserId), orderBy("timestamp", "desc"));
-
     onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
+        container.innerHTML = '<h3>Mis Pedidos Asignados</h3>';
         if (snapshot.empty) {
-            container.innerHTML = '<p>Aún no tienes pedidos.</p>';
+            container.innerHTML += '<p>Aún no tienes pedidos asignados.</p>';
             return;
         }
         snapshot.forEach(docSnap => {
@@ -287,7 +328,7 @@ function listenToOrders() {
             card.className = 'order-card';
             const orderDate = order.timestamp ? order.timestamp.toDate().toLocaleString('es-ES') : 'Fecha no disponible';
             card.innerHTML = `
-                <h3>Pedido para: ${order.nombreCliente}</h3>
+                <h4>Pedido para: ${order.nombreCliente}</h4>
                 <p><strong>Total:</strong> ₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
                 <p><strong>Estado:</strong> <span class="status status-${(order.estado || 'pendiente').toLowerCase().replace(/ /g, '_')}">${order.estado}</span></p>
                 <small>${orderDate}</small>
@@ -305,10 +346,8 @@ function listenToOrders() {
 function setupModalListeners() {
     const detailModal = document.getElementById('order-detail-modal');
     const editModal = document.getElementById('edit-order-modal');
-
     detailModal.querySelector('.close-button').onclick = () => detailModal.style.display = 'none';
     editModal.querySelector('.close-button-edit').onclick = () => editModal.style.display = 'none';
-    
     window.onclick = (event) => {
         if (event.target == detailModal) detailModal.style.display = 'none';
         if (event.target == editModal) editModal.style.display = 'none';
@@ -331,7 +370,6 @@ async function showOrderDetails(orderId) {
             <ul>${(order.items || []).map(item => `<li>${item.cantidad}x ${item.nombre}</li>`).join('')}</ul>
         `;
         detailModal.style.display = 'flex';
-        
         document.getElementById('edit-order-info-btn').onclick = () => showEditOrderModal(order);
         document.getElementById('manage-status-btn').onclick = () => manageOrderStatus(order);
     }
@@ -345,7 +383,6 @@ function showEditOrderModal(order) {
     document.getElementById('edit-delivery-address').value = order.direccionCliente;
     document.getElementById('edit-delivery-cost').value = order.costoDelivery;
     editModal.style.display = 'flex';
-    
     document.getElementById('save-order-changes-btn').onclick = async () => {
         const orderId = document.getElementById('edit-order-id').value;
         const subtotal = (order.total || 0) - (order.costoDelivery || 0);
@@ -367,9 +404,7 @@ function showEditOrderModal(order) {
 async function manageOrderStatus(order) {
     const action = prompt("Elige una acción: 'listo', 'en camino', 'entregado', 'cancelar' o 'eliminar'");
     if (!action) return;
-
     const actionLower = action.toLowerCase();
-    
     if (actionLower === 'eliminar') {
         if (confirm("¿Estás seguro de ELIMINAR este pedido? La acción es permanente.")) {
             await deleteDoc(doc(db, 'pedidos', order.id));
@@ -378,16 +413,14 @@ async function manageOrderStatus(order) {
         }
         return;
     }
-
     let nuevoEstado = '';
     switch(actionLower) {
-        case 'listo': nuevoEstado = 'available'; break; // Para que lo vea el repartidor
+        case 'listo': nuevoEstado = 'available'; break;
         case 'en camino': nuevoEstado = 'En camino'; break;
         case 'entregado': nuevoEstado = 'Entregado'; break;
         case 'cancelar': nuevoEstado = 'Cancelado'; break;
         default: alert("Acción no válida."); return;
     }
-    
     await updateDoc(doc(db, 'pedidos', order.id), { estado: nuevoEstado });
     alert(`Estado del pedido actualizado a: ${nuevoEstado}`);
     document.getElementById('order-detail-modal').style.display = 'none';
