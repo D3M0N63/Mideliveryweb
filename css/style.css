@@ -94,7 +94,7 @@ header h1 {
   Componentes Comunes
   ================================= */
 .view { display: none; }
-.view.active, #view-web { display: block; } /* Asegura que la primera vista sea visible */
+.view.active, #view-web { display: block; }
 
 .card, .order-card, .user-card { 
     background-color: #fff; 
@@ -127,7 +127,7 @@ button {
 }
 button:hover { background-color: #005ecb; }
 
-.error { 
+.error, .error-message { 
     color: #ff3b30; 
     margin-top: 1rem; 
     min-height: 1.2em; 
@@ -169,6 +169,7 @@ button:hover { background-color: #005ecb; }
     padding-bottom: 0.5rem; 
 }
 .create-order-form h2:first-child { margin-top: 0; }
+.form-row { display: flex; gap: 0.5rem; align-items: center; }
 .radio-group { display: flex; gap: 1rem; margin: 1rem 0; }
 .product-adder { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
 .product-adder select { flex-grow: 1; }
@@ -182,6 +183,7 @@ button:hover { background-color: #005ecb; }
 .order-card h3, .user-card h3, .order-card h4 { margin-top: 0; }
 .order-card p, .user-card p { margin: 0.5rem 0; }
 .action-btn { margin-top: 1rem; }
+.action-btn-secondary { background-color: #8e8e93; }
 .action-btn-small { padding: 6px 10px; font-size: 0.8rem; width: auto; margin: 0 4px; }
 .action-btn-small.delete { background-color: #ff3b30; }
 .user-card { display: flex; justify-content: space-between; align-items: center; } 
@@ -207,6 +209,46 @@ button:hover { background-color: #005ecb; }
     background-color: #f9f9f9;
     color: #ccc;
     cursor: not-allowed;
+}
+
+/* Perfil */
+.profile-picture-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+#profile-picture-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #eee;
+    margin-bottom: 1rem;
+}
+.change-picture-btn {
+    background: none;
+    border: none;
+    color: #007aff;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.form-label {
+    display: block;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #8e8e93;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.feedback-message {
+    font-size: 0.9rem;
+    color: #555;
+    min-height: 1.2em;
+    margin-top: -5px;
+    margin-bottom: 10px;
+    text-align: left;
 }
 
 /* =================================
@@ -309,25 +351,4 @@ button:hover { background-color: #005ecb; }
 #modal-body .items-list li span {
     font-weight: 500;
     color: #8e8e93;
-}
-
-/* =================================
-  NUEVOS ESTILOS PARA PERFIL
-  ================================= */
-.form-label {
-    display: block;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    color: #8e8e93;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.feedback-message {
-    font-size: 0.9rem;
-    color: #555;
-    min-height: 1.2em;
-    margin-top: -5px;
-    margin-bottom: 10px;
-    text-align: left;
 }

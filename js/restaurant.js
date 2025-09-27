@@ -1,11 +1,13 @@
-import { auth, db } from './firebase-config.js'; 
+import { auth, db, storage } from './firebase-config.js'; 
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
 let currentUserId = null;
 let products = [];
 let selectedItems = [];
 let restaurantLocationUrl = '';
+let profilePictureFile = null; // Variable para el archivo de la foto de perfil
 
 // --- Autenticación y Carga Inicial ---
 onAuthStateChanged(auth, async (user) => {
@@ -443,7 +445,7 @@ async function manageOrderStatus(order) {
 }
 
 
-// --- SECCIÓN DE PERFIL (ACTUALIZADA) ---
+// --- SECCIÓN DE PERFIL ---
 async function loadProfile() {
     const docSnap = await getDoc(doc(db, "users", currentUserId));
     if (docSnap.exists()) {
@@ -451,7 +453,10 @@ async function loadProfile() {
         document.getElementById('profile-name').value = userData.nombreRestaurante || '';
         document.getElementById('profile-location-url').value = userData.locationUrl || '';
         
-        // Mostrar coordenadas si existen
+        if (userData.photoURL) {
+            document.getElementById('profile-picture-preview').src = userData.photoURL;
+        }
+
         if (userData.coordenadas) {
             const lat = userData.coordenadas.latitude;
             const lon = userData.coordenadas.longitude;
@@ -460,7 +465,18 @@ async function loadProfile() {
     }
 }
 
-// Listener para el nuevo botón de obtener ubicación
+document.getElementById('profile-picture-input').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        profilePictureFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('profile-picture-preview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
 document.getElementById('get-location-btn').addEventListener('click', () => {
     const feedback = document.getElementById('location-feedback');
     if (!navigator.geolocation) {
@@ -481,36 +497,52 @@ document.getElementById('get-location-btn').addEventListener('click', () => {
     );
 });
 
-// Listener para guardar el perfil (actualizado para incluir coordenadas)
 document.getElementById('save-profile-btn').addEventListener('click', async () => {
-    const nombre = document.getElementById('profile-name').value.trim();
-    const url = document.getElementById('profile-location-url').value.trim();
-    const coordsString = document.getElementById('profile-coordinates').value.trim();
+    const saveButton = document.getElementById('save-profile-btn');
+    saveButton.textContent = 'Guardando...';
+    saveButton.disabled = true;
 
-    if (nombre && url) {
-        const updates = {
-            nombreRestaurante: nombre,
-            locationUrl: url
-        };
+    try {
+        let photoURL = null;
+        if (profilePictureFile) {
+            const storageRef = ref(storage, `profile_pictures/${currentUserId}`);
+            const snapshot = await uploadBytes(storageRef, profilePictureFile);
+            photoURL = await getDownloadURL(snapshot.ref);
+        }
 
-        // Añadir coordenadas al objeto de actualización si existen
-        if (coordsString) {
-            const [lat, lon] = coordsString.split(',').map(Number);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                updates.coordenadas = new GeoPoint(lat, lon);
+        const nombre = document.getElementById('profile-name').value.trim();
+        const url = document.getElementById('profile-location-url').value.trim();
+        const coordsString = document.getElementById('profile-coordinates').value.trim();
+
+        if (nombre && url) {
+            const updates = {
+                nombreRestaurante: nombre,
+                locationUrl: url
+            };
+
+            if (photoURL) {
+                updates.photoURL = photoURL;
             }
-        }
-        
-        try {
-            await updateDoc(doc(db, "users", currentUserId), updates);
-            alert("Perfil actualizado.");
-        } catch (error) {
-            console.error("Error al actualizar el perfil: ", error);
-            alert("No se pudo actualizar el perfil.");
-        }
 
-    } else {
-        alert("Por favor, completa el nombre y la URL del perfil.");
+            if (coordsString) {
+                const [lat, lon] = coordsString.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    updates.coordenadas = new GeoPoint(lat, lon);
+                }
+            }
+            
+            await updateDoc(doc(db, "users", currentUserId), updates);
+            alert("Perfil actualizado con éxito.");
+            profilePictureFile = null;
+        } else {
+            alert("Por favor, completa el nombre y la URL del perfil.");
+        }
+    } catch (error) {
+        console.error("Error al actualizar el perfil: ", error);
+        alert("No se pudo actualizar el perfil.");
+    } finally {
+        saveButton.textContent = 'Guardar Perfil';
+        saveButton.disabled = false;
     }
 });
 
