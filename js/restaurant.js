@@ -506,16 +506,14 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         let photoURL = null;
         if (profilePictureFile) {
             const fileName = `${currentUserId}-${Date.now()}`;
-            // ---- BLOQUE CORREGIDO ----
             const { data, error } = await supabase
                 .storage
                 .from('Midelivery')
                 .upload(fileName, profilePictureFile, {
                     cacheControl: '3600',
                     upsert: false,
-                    contentType: profilePictureFile.type // <-- La línea clave que faltaba
+                    contentType: profilePictureFile.type // Corrección para el error 400
                 });
-            // ---- FIN DEL BLOQUE CORREGIDO ----
 
             if (error) throw error;
 
