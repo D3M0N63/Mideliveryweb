@@ -1,13 +1,12 @@
 /* =================================
-   Estilos Generales y Reseteo
-   ================================= */
+  Estilos Generales y Reseteo
+  ================================= */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     background-color: #f4f4f9;
     color: #333;
-    /* Espacio para header y footer fijos */
-    padding-top: 60px; 
+    /* Espacio para el menú inferior fijo */
     padding-bottom: 70px; 
 }
 
@@ -15,20 +14,41 @@ body {
     box-sizing: border-box;
 }
 
+main {
+    padding: 1rem;
+    /* Empuja el contenido hacia abajo para no ser tapado por un header fijo si lo hubiera */
+    padding-top: 1rem;
+}
+
 /* =================================
-   Header (Barra Superior)
-   ================================= */
+  Estilos de Login (index.html)
+  ================================= */
+.login-container { 
+    max-width: 400px; 
+    margin: 10vh auto; 
+    padding: 2rem; 
+    background-color: #fff; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+    text-align: center; 
+}
+
+.logo { 
+    width: 80px; 
+    height: 80px; 
+    margin-bottom: 1rem; 
+}
+
+/* =================================
+  Header (Para Admin y Delivery)
+  ================================= */
 header {
     background-color: #fff;
     padding: 1rem;
     text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 60px;
-    z-index: 100;
+    margin-bottom: 1rem;
+    border-radius: 0 0 12px 12px;
 }
 
 header h1 {
@@ -37,11 +57,11 @@ header h1 {
 }
 
 /* =================================
-   Footer (Barra de Menú Inferior) - CORREGIDO PARA MÓVIL
-   ================================= */
-footer {
+  Footer / Menú Fijo (Para restaurant.html)
+  ================================= */
+footer, .tabs {
     background-color: #ffffff;
-    padding: 0 5px; /* Reducimos padding lateral */
+    padding: 0 5px;
     box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
     position: fixed;
     bottom: 0;
@@ -50,23 +70,8 @@ footer {
     height: 65px;
     z-index: 1000;
     display: flex;
-    justify-content: center; /* Centramos el contenido */
-    align-items: center;
-}
-
-main {
-    padding: 1rem;
-}
-
-/* =================================
-   Pestañas / Navegación - CORREGIDO PARA MÓVIL
-   ================================= */
-.tabs {
-    display: flex;
-    justify-content: space-around; /* Distribuir uniformemente */
-    align-items: stretch; /* Estirar items para ocupar altura */
-    width: 100%;
-    height: 100%;
+    justify-content: space-around;
+    align-items: stretch;
 }
 
 .tab-btn {
@@ -79,12 +84,10 @@ main {
     text-align: center;
     cursor: pointer;
     margin: 0;
-    padding: 10px 2px; /* Reducimos padding para que quepa el texto */
+    padding: 10px 2px;
     transition: color 0.2s, border-color 0.2s;
-    
-    /* Flexbox para distribuir espacio y permitir que se encojan */
     flex: 1 1 0;
-    min-width: 0; /* MUY IMPORTANTE: Permite que los botones se encojan */
+    min-width: 0;
 }
 
 .tab-btn.active {
@@ -92,39 +95,112 @@ main {
     border-top-color: #007aff;
 }
 
-/* El botón de salir ya no está en el footer, pero mantenemos el estilo por si acaso */
-.logout-btn {
-    flex-shrink: 0;
-    width: auto;
-    background: none;
-    border: none;
-    color: #8e8e93;
-    font-size: 0.8rem;
-    padding: 10px;
-    margin: 0;
+/* =================================
+  Componentes Comunes
+  ================================= */
+.view { display: none; }
+.view.active { display: block; }
+
+.card, .order-card, .user-card { 
+    background-color: #fff; 
+    border-radius: 12px; 
+    padding: 1.5rem; 
+    margin-bottom: 1.5rem; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
 }
-.logout-btn:hover {
-    color: #007aff;
+
+input, select { 
+    width: 100%; 
+    padding: 12px; 
+    border: 1px solid #ddd; 
+    border-radius: 8px; 
+    margin-top: 0.5rem; 
+    font-size: 1rem; 
+}
+
+button { 
+    width: 100%; 
+    padding: 12px; 
+    background-color: #007aff; 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 1rem; 
+    font-weight: 500; 
+    margin-top: 1rem; 
+}
+button:hover { background-color: #005ecb; }
+
+.error { 
+    color: #ff3b30; 
+    margin-top: 1rem; 
+    min-height: 1.2em; 
+}
+
+/* Estilos de Estados */
+.status { 
+    padding: 0.2rem 0.6rem; 
+    border-radius: 12px; 
+    font-size: 0.8rem; 
+    font-weight: 500; 
+    color: white; 
+    text-transform: capitalize; 
+}
+.status-pendiente { background-color: #ff9500; }
+.status-available { background-color: #34c759; }
+.status-accepted { background-color: #007aff; }
+.status-en_camino { background-color: #5856d6; }
+.status-entregado { background-color: #8e8e93; }
+.status-cancelado { background-color: #ff3b30; }
+.status-recogido { background-color: #a2845e; }
+.status-completed { background-color: #32ade6; }
+
+/* Modal */
+.modal { 
+    display: none; 
+    position: fixed; 
+    z-index: 1001; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.4); 
+}
+.modal-content { 
+    background-color: #fefefe; 
+    margin: 15% auto; 
+    padding: 20px; 
+    border: 1px solid #888; 
+    width: 90%; 
+    max-width: 500px; 
+    border-radius: 12px; 
+}
+.close-button, .close-button-edit { 
+    color: #aaa; 
+    float: right; 
+    font-size: 28px; 
+    font-weight: bold; 
+    cursor: pointer; 
+}
+.modal-actions { 
+    display: flex; 
+    gap: 1rem; 
+    margin-top: 1rem; 
 }
 
 /* =================================
-   Resto de los estilos (sin cambios)
-   ================================= */
-.login-container { max-width: 400px; margin: 10vh auto; padding: 2rem; background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); text-align: center; }
-.logo { width: 80px; height: 80px; margin-bottom: 1rem; }
-.error { color: #ff3b30; margin-top: 1rem; min-height: 1.2em; }
-.form-group { margin-bottom: 1rem; }
-input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 0.5rem; font-size: 1rem; }
-button { width: 100%; padding: 12px; background-color: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; margin-top: 1rem; }
-button:hover { background-color: #005ecb; }
-.secondary-btn { background-color: #8e8e93; }
-.view { display: none; }
-.view.active { display: block; }
-.card, .order-card, .user-card { background-color: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.order-card h3, .user-card h3 { margin-top: 0; }
-.order-card p, .user-card p { margin: 0.5rem 0; }
-.price { font-size: 1.2rem; font-weight: bold; color: #34c759; margin-top: 1rem; }
-.create-order-form h2 { margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+  Estilos Específicos para Vistas
+  ================================= */
+
+/* Crear Pedido */
+.create-order-form h2 { 
+    margin-top: 1.5rem; 
+    margin-bottom: 1rem; 
+    border-bottom: 1px solid #eee; 
+    padding-bottom: 0.5rem; 
+}
 .create-order-form h2:first-child { margin-top: 0; }
 .radio-group { display: flex; gap: 1rem; margin: 1rem 0; }
 .product-adder { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
@@ -134,37 +210,32 @@ button:hover { background-color: #005ecb; }
 #selected-items-container .selected-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
 .remove-item-btn { background: none; border: none; color: #ff3b30; font-size: 1.5rem; cursor: pointer; padding: 0; margin: 0; width: 30px; }
 #total-display { text-align: right; font-size: 1.5rem; margin: 1rem 0; }
-.status { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500; color: white; text-transform: capitalize; }
-.status-pendiente { background-color: #ff9500; } .status-available { background-color: #34c759; } .status-accepted { background-color: #007aff; } .status-en_camino, .status-en_camino { background-color: #5856d6; } .status-entregado { background-color: #8e8e93; } .status-cancelado { background-color: #ff3b30; } .status-recogido { background-color: #a2845e; } .status-completed { background-color: #32ade6; }
-.action-btn { margin-top: 1rem; background-color: #34c759; }
+
+/* Tarjetas de Usuario/Producto/Pedido */
+.order-card h3, .user-card h3 { margin-top: 0; }
+.order-card p, .user-card p { margin: 0.5rem 0; }
+.action-btn { margin-top: 1rem; }
 .action-btn-small { padding: 6px 10px; font-size: 0.8rem; width: auto; margin: 0 4px; }
 .action-btn-small.delete { background-color: #ff3b30; }
-.user-card { display: flex; justify-content: space-between; align-items: center; } .user-card .product-info { flex-grow: 1; }
-.modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-.modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 12px; }
-.close-button, .close-button-edit { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-.modal-actions { display: flex; gap: 1rem; margin-top: 1rem; }
-
+.user-card { display: flex; justify-content: space-between; align-items: center; } 
+.user-card .product-info { flex-grow: 1; }
 
 .secondary-actions {
     border-top: 1px solid #eee;
     padding-top: 1rem;
     margin-top: 1rem;
     display: flex;
-    flex-direction: column; /* Apila los botones verticalmente */
+    flex-direction: column;
     gap: 0.5rem;
 }
-
 .secondary-actions button {
     background-color: #f0f0f0;
     color: #333;
     font-weight: normal;
 }
-
 .secondary-actions button:hover {
     background-color: #e0e0e0;
 }
-
 .secondary-actions button:disabled {
     background-color: #f9f9f9;
     color: #ccc;
