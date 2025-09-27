@@ -1,16 +1,16 @@
-/* --- ESTILOS GENERALES --- */
+/* --- ESTILOS GENERALES (TUS ESTILOS ORIGINALES) --- */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     background-color: #f4f4f9;
     color: #333;
-    /* Espacio extra en la parte inferior para que el menú no tape el contenido */
+    /* AÑADIDO: Espacio inferior para que el menú no tape el contenido */
     padding-bottom: 80px; 
 }
 .container {
     max-width: 900px;
     margin: 20px auto;
-    padding: 0 20px; /* Ajuste del padding lateral */
+    padding: 0 20px;
 }
 header {
     display: flex;
@@ -32,7 +32,7 @@ input, select, button {
     font-size: 16px;
 }
 
-/* --- TARJETAS Y VISTAS --- */
+/* --- TARJETAS Y VISTAS (TUS ESTILOS ORIGINALES) --- */
 .card {
     background: #fff;
     padding: 20px;
@@ -44,16 +44,16 @@ input, select, button {
     display: none; /* Oculto por defecto */
 }
 
-/* --- PESTAÑAS DE NAVEGACIÓN (MENÚ FIJO INFERIOR) --- */
+/* --- PESTAÑAS DE NAVEGACIÓN (MODIFICADO PARA SER FIJO) --- */
 .tabs {
     display: flex;
-    position: fixed; /* Fija el menú */
-    bottom: 0;       /* Lo alinea a la parte inferior */
+    position: fixed;    /* Fija el menú en la pantalla */
+    bottom: 0;          /* Lo alinea a la parte inferior */
     left: 0;
     width: 100%;
     background: #fff;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1); /* Sombra para darle elevación */
-    z-index: 100;    /* Se asegura que esté por encima de todo */
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1); /* Sombra superior */
+    z-index: 100;       /* Asegura que esté por encima de otros elementos */
 }
 .tab-btn {
     flex-grow: 1;
@@ -62,17 +62,17 @@ input, select, button {
     border: none;
     padding: 15px;
     cursor: pointer;
-    border-top: 3px solid transparent; /* Borde superior en lugar de inferior */
+    border-top: 3px solid transparent; /* Cambiado de border-bottom a border-top */
     transition: all 0.3s ease;
-    border-radius: 0; /* Quita el redondeo de los botones */
-    margin-bottom: 0;
+    margin-bottom: 0; /* Quita el margen inferior de los botones */
 }
 .tab-btn.active {
     color: #007BFF;
-    border-top-color: #007BFF;
+    border-top-color: #007BFF; /* Cambiado de border-bottom a border-top */
 }
 
-/* --- BOTONES --- */
+
+/* --- BOTONES (TUS ESTILOS ORIGINALES) --- */
 .action-btn, .action-btn-secondary {
     border: none;
     color: white;
@@ -101,7 +101,7 @@ input, select, button {
     flex: 1;
 }
 
-/* --- FORMULARIOS --- */
+/* --- FORMULARIOS (TUS ESTILOS ORIGINALES) --- */
 .form-row {
     display: flex;
     gap: 10px;
@@ -114,7 +114,7 @@ input, select, button {
 .payment-options label { margin-right: 20px; }
 .error-message { color: red; font-weight: bold; }
 
-/* --- LISTAS (PRODUCTOS, PEDIDOS) --- */
+/* --- LISTAS (TUS ESTILOS ORIGINALES) --- */
 .user-card, .order-card {
     display: flex;
     justify-content: space-between;
@@ -142,7 +142,7 @@ input, select, button {
     padding: 0;
 }
 
-/* --- ESTADOS DE PEDIDO --- */
+/* --- ESTADOS DE PEDIDO (TUS ESTILOS ORIGINALES) --- */
 .status {
     padding: 5px 10px;
     border-radius: 12px;
@@ -155,7 +155,7 @@ input, select, button {
 .status-entregado { background-color: #6c757d; }
 .status-cancelado { background-color: #dc3545; }
 
-/* --- MODALES --- */
+/* --- MODALES (TUS ESTILOS ORIGINALES) --- */
 .modal {
     display: none;
     position: fixed;
