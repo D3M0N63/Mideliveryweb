@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-config.js'; 
-import { supabase } from './supabase-config.js'; // Importamos el cliente de Supabase
+import { supabase } from './supabase-config.js';
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
@@ -506,18 +506,22 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         let photoURL = null;
         if (profilePictureFile) {
             const fileName = `${currentUserId}-${Date.now()}`;
-            // ---- LÍNEA CORREGIDA ----
+            // ---- BLOQUE CORREGIDO ----
             const { data, error } = await supabase
                 .storage
-                .from('Midelivery') // <--- CAMBIADO A 'Midelivery'
-                .upload(fileName, profilePictureFile);
+                .from('Midelivery')
+                .upload(fileName, profilePictureFile, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType: profilePictureFile.type // <-- La línea clave que faltaba
+                });
+            // ---- FIN DEL BLOQUE CORREGIDO ----
 
             if (error) throw error;
 
-            // ---- LÍNEA CORREGIDA ----
             const { data: urlData } = supabase
                 .storage
-                .from('Midelivery') // <--- CAMBIADO A 'Midelivery'
+                .from('Midelivery')
                 .getPublicUrl(fileName);
             
             photoURL = urlData.publicUrl;
