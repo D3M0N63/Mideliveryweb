@@ -28,7 +28,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function loadRestaurantData() {
-    listenToWebOrders();
+    listenToWebOrders(); 
     listenToProducts();
     listenToOrders();
     loadProfile();
@@ -50,6 +50,7 @@ function setupTabs() {
             });
         });
     });
+    // Forzar la visualización de la primera pestaña (Pedidos Web)
     document.getElementById('view-web').style.display = 'block';
     document.getElementById('btn-web').classList.add('active');
 }
@@ -353,7 +354,6 @@ function setupModalListeners() {
     };
 }
 
-// ---- FUNCIÓN MODIFICADA ----
 async function showOrderDetails(orderId) {
     const detailModal = document.getElementById('order-detail-modal');
     const docSnap = await getDoc(doc(db, "pedidos", orderId));
@@ -361,7 +361,6 @@ async function showOrderDetails(orderId) {
         const order = {id: docSnap.id, ...docSnap.data()};
         const modalBody = document.getElementById('modal-body');
         
-        // Genera el nuevo HTML para el cuerpo del modal
         modalBody.innerHTML = `
             <div class="detail-section">
                 <p class="detail-label">Cliente:</p>

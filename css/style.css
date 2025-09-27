@@ -6,7 +6,7 @@ body {
     margin: 0;
     background-color: #f4f4f9;
     color: #333;
-    /* Espacio para el menú inferior fijo */
+    /* Espacio para el menú inferior fijo en restaurant.html */
     padding-bottom: 70px; 
 }
 
@@ -16,8 +16,20 @@ body {
 
 main {
     padding: 1rem;
-    /* Empuja el contenido hacia abajo para no ser tapado por un header fijo si lo hubiera */
-    padding-top: 1rem;
+}
+
+header {
+    background-color: #fff;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+    border-radius: 0 0 12px 12px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
 }
 
 /* =================================
@@ -40,26 +52,9 @@ main {
 }
 
 /* =================================
-  Header (Para Admin y Delivery)
-  ================================= */
-header {
-    background-color: #fff;
-    padding: 1rem;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 1rem;
-    border-radius: 0 0 12px 12px;
-}
-
-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-}
-
-/* =================================
   Footer / Menú Fijo (Para restaurant.html)
   ================================= */
-footer, .tabs {
+.tabs {
     background-color: #ffffff;
     padding: 0 5px;
     box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
@@ -99,7 +94,7 @@ footer, .tabs {
   Componentes Comunes
   ================================= */
 .view { display: none; }
-.view.active { display: block; }
+.view.active, #view-web { display: block; } /* Asegura que la primera vista sea visible */
 
 .card, .order-card, .user-card { 
     background-color: #fff; 
@@ -138,6 +133,11 @@ button:hover { background-color: #005ecb; }
     min-height: 1.2em; 
 }
 
+.logout-btn-profile {
+    background-color: #ff3b30;
+    margin-top: 1rem;
+}
+
 /* Estilos de Estados */
 .status { 
     padding: 0.2rem 0.6rem; 
@@ -156,39 +156,6 @@ button:hover { background-color: #005ecb; }
 .status-recogido { background-color: #a2845e; }
 .status-completed { background-color: #32ade6; }
 
-/* Modal */
-.modal { 
-    display: none; 
-    position: fixed; 
-    z-index: 1001; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    overflow: auto; 
-    background-color: rgba(0,0,0,0.4); 
-}
-.modal-content { 
-    background-color: #fefefe; 
-    margin: 15% auto; 
-    padding: 20px; 
-    border: 1px solid #888; 
-    width: 90%; 
-    max-width: 500px; 
-    border-radius: 12px; 
-}
-.close-button, .close-button-edit { 
-    color: #aaa; 
-    float: right; 
-    font-size: 28px; 
-    font-weight: bold; 
-    cursor: pointer; 
-}
-.modal-actions { 
-    display: flex; 
-    gap: 1rem; 
-    margin-top: 1rem; 
-}
 
 /* =================================
   Estilos Específicos para Vistas
@@ -212,7 +179,7 @@ button:hover { background-color: #005ecb; }
 #total-display { text-align: right; font-size: 1.5rem; margin: 1rem 0; }
 
 /* Tarjetas de Usuario/Producto/Pedido */
-.order-card h3, .user-card h3 { margin-top: 0; }
+.order-card h3, .user-card h3, .order-card h4 { margin-top: 0; }
 .order-card p, .user-card p { margin: 0.5rem 0; }
 .action-btn { margin-top: 1rem; }
 .action-btn-small { padding: 6px 10px; font-size: 0.8rem; width: auto; margin: 0 4px; }
@@ -241,15 +208,53 @@ button:hover { background-color: #005ecb; }
     color: #ccc;
     cursor: not-allowed;
 }
+
 /* =================================
-  NUEVOS ESTILOS PARA MODAL DE DETALLES
+  Modal (Revisado y Mejorado)
   ================================= */
+.modal { 
+    display: none; 
+    position: fixed; 
+    z-index: 1001; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.5); 
+    align-items: center;
+    justify-content: center;
+}
+.modal-content { 
+    background-color: #fefefe; 
+    margin: auto; 
+    padding: 20px; 
+    border: 1px solid #888; 
+    width: 90%; 
+    max-width: 500px; 
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+.close-button, .close-button-edit { 
+    color: #aaa; 
+    float: right; 
+    font-size: 28px; 
+    font-weight: bold; 
+    cursor: pointer; 
+}
+.modal-actions { 
+    display: flex; 
+    gap: 1rem; 
+    margin-top: 1rem; 
+}
+
+/* --- ESTILOS PARA EL CUERPO DEL MODAL DE DETALLES --- */
 #modal-body .detail-section {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 10px 0;
     border-bottom: 1px solid #f0f0f0;
-    align-items: center;
 }
 
 #modal-body p {
