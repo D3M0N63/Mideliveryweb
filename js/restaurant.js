@@ -28,7 +28,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function loadRestaurantData() {
-    listenToWebOrders(); // NUEVA FUNCIÓN
+    listenToWebOrders();
     listenToProducts();
     listenToOrders();
     loadProfile();
@@ -50,12 +50,11 @@ function setupTabs() {
             });
         });
     });
-    // Forzar la visualización de la primera pestaña (Pedidos Web)
     document.getElementById('view-web').style.display = 'block';
     document.getElementById('btn-web').classList.add('active');
 }
 
-// --- NUEVA SECCIÓN: Pedidos Web ---
+// --- Pedidos Web ---
 function listenToWebOrders() {
     const container = document.getElementById('web-orders-container');
     const q = query(collection(db, "pedidos"), where("restauranteId", "==", null), where("estado", "==", "Pendiente"));
@@ -354,21 +353,44 @@ function setupModalListeners() {
     };
 }
 
+// ---- FUNCIÓN MODIFICADA ----
 async function showOrderDetails(orderId) {
     const detailModal = document.getElementById('order-detail-modal');
     const docSnap = await getDoc(doc(db, "pedidos", orderId));
     if (docSnap.exists()) {
         const order = {id: docSnap.id, ...docSnap.data()};
         const modalBody = document.getElementById('modal-body');
+        
+        // Genera el nuevo HTML para el cuerpo del modal
         modalBody.innerHTML = `
-            <p><strong>Cliente:</strong> ${order.nombreCliente}</p>
-            <p><strong>Teléfono:</strong> ${order.telefonoCliente || 'N/A'}</p>
-            <p><strong>Dirección:</strong> ${order.direccionCliente}</p>
-            <p><strong>Total:</strong> ₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
-            <p><strong>Estado Actual:</strong> ${order.estado}</p>
-            <h4>Items:</h4>
-            <ul>${(order.items || []).map(item => `<li>${item.cantidad}x ${item.nombre}</li>`).join('')}</ul>
+            <div class="detail-section">
+                <p class="detail-label">Cliente:</p>
+                <p class="detail-value">${order.nombreCliente}</p>
+            </div>
+            <div class="detail-section">
+                <p class="detail-label">Teléfono:</p>
+                <p class="detail-value">${order.telefonoCliente || 'N/A'}</p>
+            </div>
+            <div class="detail-section">
+                <p class="detail-label">Dirección:</p>
+                <p class="detail-value">${order.direccionCliente}</p>
+            </div>
+            <div class="detail-section">
+                <p class="detail-label">Estado Actual:</p>
+                <p class="detail-value"><span class="status status-${(order.estado || 'pendiente').toLowerCase().replace(/ /g, '_')}">${order.estado}</span></p>
+            </div>
+
+            <h4 class="items-title">Items del Pedido:</h4>
+            <ul class="items-list">
+                ${(order.items || []).map(item => `<li>${item.cantidad}x ${item.nombre} <span>₲ ${(item.precio * item.cantidad).toLocaleString('es-PY')}</span></li>`).join('')}
+            </ul>
+
+            <div class="detail-section total-section">
+                <p class="detail-label">Total:</p>
+                <p class="detail-value total-value">₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
+            </div>
         `;
+        
         detailModal.style.display = 'flex';
         document.getElementById('edit-order-info-btn').onclick = () => showEditOrderModal(order);
         document.getElementById('manage-status-btn').onclick = () => manageOrderStatus(order);

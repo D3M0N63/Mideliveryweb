@@ -241,3 +241,67 @@ button:hover { background-color: #005ecb; }
     color: #ccc;
     cursor: not-allowed;
 }
+/* =================================
+  NUEVOS ESTILOS PARA MODAL DE DETALLES
+  ================================= */
+#modal-body .detail-section {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    align-items: center;
+}
+
+#modal-body p {
+    margin: 0;
+}
+
+#modal-body .detail-label {
+    font-weight: 500;
+    color: #8e8e93;
+}
+
+#modal-body .detail-value {
+    font-weight: 500;
+    text-align: right;
+    color: #333;
+}
+
+#modal-body .total-section {
+    border-top: 2px solid #333;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+#modal-body .total-value {
+    color: #34c759; /* Verde */
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+#modal-body .items-title {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#modal-body .items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#modal-body .items-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.95rem;
+}
+
+#modal-body .items-list li span {
+    font-weight: 500;
+    color: #8e8e93;
+}
