@@ -310,3 +310,24 @@ button:hover { background-color: #005ecb; }
     font-weight: 500;
     color: #8e8e93;
 }
+
+/* =================================
+  NUEVOS ESTILOS PARA PERFIL
+  ================================= */
+.form-label {
+    display: block;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #8e8e93;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.feedback-message {
+    font-size: 0.9rem;
+    color: #555;
+    min-height: 1.2em;
+    margin-top: -5px;
+    margin-bottom: 10px;
+    text-align: left;
+}

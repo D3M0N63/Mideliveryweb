@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-config.js'; 
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 let currentUserId = null;
@@ -50,7 +50,6 @@ function setupTabs() {
             });
         });
     });
-    // Forzar la visualización de la primera pestaña (Pedidos Web)
     document.getElementById('view-web').style.display = 'block';
     document.getElementById('btn-web').classList.add('active');
 }
@@ -360,7 +359,6 @@ async function showOrderDetails(orderId) {
     if (docSnap.exists()) {
         const order = {id: docSnap.id, ...docSnap.data()};
         const modalBody = document.getElementById('modal-body');
-        
         modalBody.innerHTML = `
             <div class="detail-section">
                 <p class="detail-label">Cliente:</p>
@@ -378,18 +376,15 @@ async function showOrderDetails(orderId) {
                 <p class="detail-label">Estado Actual:</p>
                 <p class="detail-value"><span class="status status-${(order.estado || 'pendiente').toLowerCase().replace(/ /g, '_')}">${order.estado}</span></p>
             </div>
-
             <h4 class="items-title">Items del Pedido:</h4>
             <ul class="items-list">
                 ${(order.items || []).map(item => `<li>${item.cantidad}x ${item.nombre} <span>₲ ${(item.precio * item.cantidad).toLocaleString('es-PY')}</span></li>`).join('')}
             </ul>
-
             <div class="detail-section total-section">
                 <p class="detail-label">Total:</p>
                 <p class="detail-value total-value">₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
             </div>
         `;
-        
         detailModal.style.display = 'flex';
         document.getElementById('edit-order-info-btn').onclick = () => showEditOrderModal(order);
         document.getElementById('manage-status-btn').onclick = () => manageOrderStatus(order);
@@ -448,25 +443,74 @@ async function manageOrderStatus(order) {
 }
 
 
-// --- Perfil ---
+// --- SECCIÓN DE PERFIL (ACTUALIZADA) ---
 async function loadProfile() {
     const docSnap = await getDoc(doc(db, "users", currentUserId));
     if (docSnap.exists()) {
-        document.getElementById('profile-name').value = docSnap.data().nombreRestaurante || '';
-        document.getElementById('profile-location-url').value = docSnap.data().locationUrl || '';
+        const userData = docSnap.data();
+        document.getElementById('profile-name').value = userData.nombreRestaurante || '';
+        document.getElementById('profile-location-url').value = userData.locationUrl || '';
+        
+        // Mostrar coordenadas si existen
+        if (userData.coordenadas) {
+            const lat = userData.coordenadas.latitude;
+            const lon = userData.coordenadas.longitude;
+            document.getElementById('profile-coordinates').value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        }
     }
 }
 
-document.getElementById('save-profile-btn').addEventListener('click', () => {
+// Listener para el nuevo botón de obtener ubicación
+document.getElementById('get-location-btn').addEventListener('click', () => {
+    const feedback = document.getElementById('location-feedback');
+    if (!navigator.geolocation) {
+        feedback.textContent = 'Tu navegador no soporta geolocalización.';
+        return;
+    }
+
+    feedback.textContent = 'Obteniendo ubicación...';
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            document.getElementById('profile-coordinates').value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            feedback.textContent = '¡Ubicación obtenida! Presiona "Guardar Perfil" para almacenarla.';
+        },
+        () => {
+            feedback.textContent = 'No se pudo obtener la ubicación. Revisa los permisos.';
+        }
+    );
+});
+
+// Listener para guardar el perfil (actualizado para incluir coordenadas)
+document.getElementById('save-profile-btn').addEventListener('click', async () => {
     const nombre = document.getElementById('profile-name').value.trim();
     const url = document.getElementById('profile-location-url').value.trim();
+    const coordsString = document.getElementById('profile-coordinates').value.trim();
+
     if (nombre && url) {
-        updateDoc(doc(db, "users", currentUserId), {
+        const updates = {
             nombreRestaurante: nombre,
             locationUrl: url
-        }).then(() => alert("Perfil actualizado."));
+        };
+
+        // Añadir coordenadas al objeto de actualización si existen
+        if (coordsString) {
+            const [lat, lon] = coordsString.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                updates.coordenadas = new GeoPoint(lat, lon);
+            }
+        }
+        
+        try {
+            await updateDoc(doc(db, "users", currentUserId), updates);
+            alert("Perfil actualizado.");
+        } catch (error) {
+            console.error("Error al actualizar el perfil: ", error);
+            alert("No se pudo actualizar el perfil.");
+        }
+
     } else {
-        alert("Por favor, completa ambos campos del perfil.");
+        alert("Por favor, completa el nombre y la URL del perfil.");
     }
 });
 
