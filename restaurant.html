@@ -83,12 +83,13 @@
             <div id="view-profile" class="view" style="display:none;">
                 <div class="card">
                     <h2>Mi Perfil</h2>
-
+                    
                     <div class="profile-picture-container">
                         <img id="profile-picture-preview" src="https://via.placeholder.com/150" alt="Foto de perfil">
                         <label for="profile-picture-input" class="change-picture-btn">Cambiar Foto</label>
                         <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
                     </div>
+
                     <input type="text" id="profile-name" placeholder="Nombre del Restaurante">
                     <input type="url" id="profile-location-url" placeholder="URL de Google Maps de tu local">
                     
@@ -98,6 +99,7 @@
                         <button type="button" id="get-location-btn" class="action-btn-small">Obtener</button>
                     </div>
                     <p id="location-feedback" class="feedback-message"></p>
+
                     <button id="save-profile-btn" class="action-btn">Guardar Perfil</button>
                     <button id="logoutButton" class="action-btn logout-btn-profile">Cerrar Sesión</button>
                 </div>
@@ -138,7 +140,9 @@
         </div>
     </div>
 
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"></script>
     <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/supabase-config.js"></script>
     <script type="module" src="js/restaurant.js"></script>
 </body>
 </html>

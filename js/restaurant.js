@@ -1,7 +1,8 @@
-import { auth, db, storage } from './firebase-config.js'; 
+import { auth, db } from './firebase-config.js'; 
+import { supabase } from './supabase-config.js'; // Importamos el cliente de Supabase
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+// No necesitamos nada de Firebase Storage
 
 let currentUserId = null;
 let products = [];
@@ -505,9 +506,20 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
     try {
         let photoURL = null;
         if (profilePictureFile) {
-            const storageRef = ref(storage, `profile_pictures/${currentUserId}`);
-            const snapshot = await uploadBytes(storageRef, profilePictureFile);
-            photoURL = await getDownloadURL(snapshot.ref);
+            const fileName = `${currentUserId}-${Date.now()}`;
+            const { data, error } = await supabase
+                .storage
+                .from('profile-pictures') // Nombre de tu bucket público en Supabase
+                .upload(fileName, profilePictureFile);
+
+            if (error) throw error;
+
+            const { data: urlData } = supabase
+                .storage
+                .from('profile-pictures')
+                .getPublicUrl(fileName);
+            
+            photoURL = urlData.publicUrl;
         }
 
         const nombre = document.getElementById('profile-name').value.trim();
@@ -539,7 +551,7 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         }
     } catch (error) {
         console.error("Error al actualizar el perfil: ", error);
-        alert("No se pudo actualizar el perfil.");
+        alert(`No se pudo actualizar el perfil. Error: ${error.message}`);
     } finally {
         saveButton.textContent = 'Guardar Perfil';
         saveButton.disabled = false;
