@@ -2,13 +2,12 @@ import { auth, db } from './firebase-config.js';
 import { supabase } from './supabase-config.js'; // Importamos el cliente de Supabase
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-// No necesitamos nada de Firebase Storage
 
 let currentUserId = null;
 let products = [];
 let selectedItems = [];
 let restaurantLocationUrl = '';
-let profilePictureFile = null; // Variable para el archivo de la foto de perfil
+let profilePictureFile = null;
 
 // --- Autenticación y Carga Inicial ---
 onAuthStateChanged(auth, async (user) => {
@@ -507,16 +506,18 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         let photoURL = null;
         if (profilePictureFile) {
             const fileName = `${currentUserId}-${Date.now()}`;
+            // ---- LÍNEA CORREGIDA ----
             const { data, error } = await supabase
                 .storage
-                .from('profile-pictures') // Nombre de tu bucket público en Supabase
+                .from('Midelivery') // <--- CAMBIADO A 'Midelivery'
                 .upload(fileName, profilePictureFile);
 
             if (error) throw error;
 
+            // ---- LÍNEA CORREGIDA ----
             const { data: urlData } = supabase
                 .storage
-                .from('profile-pictures')
+                .from('Midelivery') // <--- CAMBIADO A 'Midelivery'
                 .getPublicUrl(fileName);
             
             photoURL = urlData.publicUrl;
