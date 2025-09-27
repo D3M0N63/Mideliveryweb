@@ -16,7 +16,7 @@ onAuthStateChanged(auth, async (user) => {
             setupTabs();
             loadRestaurantData();
         } else {
-            alert("Acceso denegado.");
+            alert("Acceso denegado. No tienes el rol de restaurante.");
             window.location.href = 'index.html';
         }
     } else {
@@ -46,8 +46,9 @@ function setupTabs() {
             });
         });
     });
-    // Forzar la visualización de la primera pestaña
+    // Forzar la visualización de la primera pestaña por defecto
     document.getElementById('view-create').style.display = 'block';
+    document.getElementById('btn-create').classList.add('active');
 }
 
 
@@ -139,10 +140,8 @@ async function deleteProduct(id) {
 document.getElementById('cancel-edit-btn').addEventListener('click', resetProductForm);
 
 function resetProductForm() {
+    document.getElementById('product-form').reset();
     document.getElementById('product-id').value = '';
-    document.getElementById('product-name').value = '';
-    document.getElementById('product-price').value = '';
-    document.getElementById('product-category').value = 'Producto';
     document.getElementById('cancel-edit-btn').style.display = 'none';
 }
 
@@ -180,7 +179,7 @@ function setupCreateOrderForm() {
 }
 
 function addItemToOrder(productId, quantity) {
-    if (!productId || quantity <= 0) return;
+    if (!productId || isNaN(quantity) || quantity <= 0) return;
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
@@ -260,10 +259,7 @@ async function createOrder() {
         await addDoc(collection(db, "pedidos"), nuevoPedido);
         alert("Pedido creado con éxito.");
         // Reset form
-        document.getElementById('customer-name').value = '';
-        document.getElementById('customer-phone').value = '';
-        document.getElementById('delivery-address').value = '';
-        document.getElementById('delivery-cost').value = '';
+        document.getElementById('create-order-form').reset();
         selectedItems = [];
         renderSelectedItems();
         updateTotal();
@@ -293,7 +289,7 @@ function listenToOrders() {
             card.innerHTML = `
                 <h3>Pedido para: ${order.nombreCliente}</h3>
                 <p><strong>Total:</strong> ₲ ${(order.total || 0).toLocaleString('es-PY')}</p>
-                <p><strong>Estado:</strong> <span class="status status-${(order.estado || 'pendiente').toLowerCase().replace(' ', '_')}">${order.estado}</span></p>
+                <p><strong>Estado:</strong> <span class="status status-${(order.estado || 'pendiente').toLowerCase().replace(/ /g, '_')}">${order.estado}</span></p>
                 <small>${orderDate}</small>
                 <button class="action-btn" data-id="${order.id}">Ver Detalles</button>
             `;
@@ -334,7 +330,7 @@ async function showOrderDetails(orderId) {
             <h4>Items:</h4>
             <ul>${(order.items || []).map(item => `<li>${item.cantidad}x ${item.nombre}</li>`).join('')}</ul>
         `;
-        detailModal.style.display = 'block';
+        detailModal.style.display = 'flex';
         
         document.getElementById('edit-order-info-btn').onclick = () => showEditOrderModal(order);
         document.getElementById('manage-status-btn').onclick = () => manageOrderStatus(order);
@@ -348,12 +344,12 @@ function showEditOrderModal(order) {
     document.getElementById('edit-customer-phone').value = order.telefonoCliente;
     document.getElementById('edit-delivery-address').value = order.direccionCliente;
     document.getElementById('edit-delivery-cost').value = order.costoDelivery;
-    editModal.style.display = 'block';
+    editModal.style.display = 'flex';
     
     document.getElementById('save-order-changes-btn').onclick = async () => {
         const orderId = document.getElementById('edit-order-id').value;
-        const subtotal = order.total - order.costoDelivery;
-        const newDeliveryCost = parseFloat(document.getElementById('edit-delivery-cost').value);
+        const subtotal = (order.total || 0) - (order.costoDelivery || 0);
+        const newDeliveryCost = parseFloat(document.getElementById('edit-delivery-cost').value) || 0;
         const updates = {
             nombreCliente: document.getElementById('edit-customer-name').value,
             telefonoCliente: document.getElementById('edit-customer-phone').value,
@@ -367,7 +363,6 @@ function showEditOrderModal(order) {
         document.getElementById('order-detail-modal').style.display = 'none';
     };
 }
-
 
 async function manageOrderStatus(order) {
     const action = prompt("Elige una acción: 'listo', 'en camino', 'entregado', 'cancelar' o 'eliminar'");
