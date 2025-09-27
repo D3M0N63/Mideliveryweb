@@ -1,9 +1,11 @@
-// Importa las funciones que necesitas de los SDKs que necesitas
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+// ---- LÍNEA NUEVA AÑADIDA ----
+import { getStorage } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
-// TODO: Reemplaza lo siguiente con la configuración de tu propio proyecto de Firebase
+// Tu configuración de Firebase Web App
 const firebaseConfig = {
   apiKey: "AIzaSyCUMoE_2vypwKDSjTgvTCf8RZ_SInbirZ4",
   authDomain: "mi-delivery-2b62c.firebaseapp.com",
@@ -13,10 +15,13 @@ const firebaseConfig = {
   appId: "1:796070702650:web:43977d02ec9485eb324f03"
 };
 
-// Inicializa Firebase
+
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+// ---- LÍNEA NUEVA AÑADIDA ----
+const storage = getStorage(app); // Inicializa Firebase Storage
 
-// Exporta las instancias para usarlas en otros archivos
-export { db, auth };
+// Exporta los servicios para que otros archivos los puedan usar
+export { db, auth, storage }; // <-- Añadido 'storage' a la exportación
