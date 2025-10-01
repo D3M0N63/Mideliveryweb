@@ -1,10 +1,10 @@
 import { auth, db } from './firebase-config.js'; 
-// Importamos las funciones para inicializar una segunda app
+// Importamos las funciones necesarias para la app secundaria y writeBatch
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-// Copiamos la configuración de Firebase para usarla en la app secundaria
+// Configuración de Firebase para la app secundaria (evita el auto-login)
 const firebaseConfig = {
   apiKey: "AIzaSyCUMoE_2vypwKDSjTgvTCf8RZ_SInbirZ4",
   authDomain: "mi-delivery-2b62c.firebaseapp.com",
@@ -14,7 +14,7 @@ const firebaseConfig = {
   appId: "1:796070702650:web:43977d02ec9485eb324f03"
 };
 
-// --- Verificación de rol y redirección ---
+// --- Verificación de rol y carga inicial ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -48,7 +48,6 @@ function setupTabs() {
         });
     });
 }
-
 
 // --- Lógica del Dashboard ---
 function loadDashboardData(user) {
@@ -91,7 +90,6 @@ function handleUserCreation() {
 
     createUserForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-
         const nombre = nameInput.value.trim();
         const email = emailInput.value.trim();
         const password = passwordInput.value.trim();
@@ -109,30 +107,25 @@ function handleUserCreation() {
         }
 
         try {
-            // 1. Inicializamos una app secundaria y temporal de Firebase
-            // Se le da un nombre único para evitar conflictos.
             const secondaryApp = initializeApp(firebaseConfig, `secondary-app-${Date.now()}`);
             const secondaryAuth = getAuth(secondaryApp);
 
-            // 2. Creamos el usuario usando la instancia de autenticación secundaria
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
             const user = userCredential.user;
             
-            // 3. Guardamos los datos en Firestore (usando la base de datos principal 'db')
             const userData = {
                 email: email,
                 role: role,
                 nombreRestaurante: role === 'restaurante' ? nombre : null,
-                nombre: role === 'repartidor' ? nombre : null
+                nombre: role === 'repartidor' ? nombre : null,
             };
             await setDoc(doc(db, "users", user.uid), userData);
             
-            // Si es restaurante, creamos su perfil en la colección 'restaurantes'
             if (role === 'restaurante') {
                 const restaurantData = {
                     nombreRestaurante: nombre,
                     locationUrl: locationUrl,
-                    email: email
+                    email: email,
                 };
                 await setDoc(doc(db, "restaurantes", user.uid), restaurantData);
             }
@@ -143,13 +136,100 @@ function handleUserCreation() {
 
         } catch (error) {
             console.error("Error al crear usuario:", error);
-            if (error.code === 'auth/email-already-in-use') {
-                errorMsg.textContent = 'Error: El correo electrónico ya está en uso.';
-            } else {
-                errorMsg.textContent = `Error: ${error.message}`;
-            }
+            errorMsg.textContent = `Error: ${error.message}`;
         }
     });
+}
+
+// --- Lógica de Restaurantes con Botón para Liquidar ---
+function listenToRestaurants() {
+    const container = document.getElementById('restaurants-container');
+
+    const qPedidos = query(collection(db, "pedidos"), where("liquidado", "==", false));
+    onSnapshot(qPedidos, (pedidosSnapshot) => {
+        const deliveryTotals = {};
+        pedidosSnapshot.forEach(doc => {
+            const pedido = doc.data();
+            if (pedido.restauranteId && pedido.costoDelivery) {
+                deliveryTotals[pedido.restauranteId] = (deliveryTotals[pedido.restauranteId] || 0) + pedido.costoDelivery;
+            }
+        });
+
+        const qRestaurantes = query(collection(db, "restaurantes"));
+        onSnapshot(qRestaurantes, (snapshot) => {
+            container.innerHTML = '';
+            if (snapshot.empty) {
+                container.innerHTML = '<p>No hay restaurantes registrados.</p>';
+                return;
+            }
+            let restaurantDataForExcel = [];
+            
+            snapshot.forEach(doc => {
+                const restaurant = doc.data();
+                const totalDelivery = deliveryTotals[doc.id] || 0;
+                
+                restaurantDataForExcel.push({
+                    nombre: restaurant.nombreRestaurante || "N/A",
+                    email: restaurant.email || "N/A",
+                    totalDelivery: totalDelivery
+                });
+
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <div style="flex-grow: 1;">
+                        <h3>${restaurant.nombreRestaurante || "Sin nombre"}</h3>
+                        <p>${restaurant.email || "Sin email"}</p>
+                        <p class="price">Total Pendiente: ₲ ${totalDelivery.toLocaleString('es-PY')}</p>
+                    </div>
+                    <div>
+                        <button class="btn-liquidar" data-id="${doc.id}" ${totalDelivery === 0 ? 'disabled' : ''}>Cerrar Valor</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            document.querySelectorAll('.btn-liquidar').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const restaurantId = e.target.dataset.id;
+                    if (confirm(`¿Estás seguro de liquidar el valor pendiente para este restaurante?`)) {
+                        liquidarPedidos(restaurantId);
+                    }
+                });
+            });
+
+            setupExcelExport(restaurantDataForExcel);
+        });
+    });
+}
+
+// --- Función para Liquidar Pedidos ---
+async function liquidarPedidos(restaurantId) {
+    try {
+        const q = query(
+            collection(db, "pedidos"),
+            where("restauranteId", "==", restaurantId),
+            where("liquidado", "==", false)
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            alert("No hay valores pendientes para liquidar.");
+            return;
+        }
+
+        const batch = writeBatch(db);
+        snapshot.forEach(doc => {
+            batch.update(doc.ref, { liquidado: true });
+        });
+
+        await batch.commit();
+        alert("Valores liquidados con éxito. La lista se actualizará.");
+
+    } catch (error) {
+        console.error("Error al liquidar pedidos:", error);
+        alert("Ocurrió un error al intentar liquidar los valores.");
+    }
 }
 
 // Repartidores activos
@@ -166,56 +246,10 @@ function listenToActiveDrivers() {
         snapshot.forEach(doc => {
             const driver = doc.data();
             const card = document.createElement('div');
-            card.className = 'user-card';
+            card.className = 'user-card'; // Re-usamos esta clase
             card.innerHTML = `<p>${driver.nombre}</p>`;
             container.appendChild(card);
         });
-    });
-}
-
-// --- Lógica de Restaurantes ---
-async function listenToRestaurants() {
-    const container = document.getElementById('restaurants-container');
-    
-    const pedidosSnapshot = await getDocs(collection(db, "pedidos"));
-    const deliveryTotals = {};
-    pedidosSnapshot.forEach(doc => {
-        const pedido = doc.data();
-        if (pedido.restauranteId && pedido.costoDelivery) {
-            deliveryTotals[pedido.restauranteId] = (deliveryTotals[pedido.restauranteId] || 0) + pedido.costoDelivery;
-        }
-    });
-
-    // Se cambió la consulta a la colección 'restaurantes'
-    const q = query(collection(db, "restaurantes"));
-    onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
-        if (snapshot.empty) {
-            container.innerHTML = '<p>No hay restaurantes registrados.</p>';
-            return;
-        }
-        let restaurantDataForExcel = [];
-        snapshot.forEach(doc => {
-            const restaurant = doc.data();
-            const totalDelivery = deliveryTotals[doc.id] || 0;
-            
-            restaurantDataForExcel.push({
-                nombre: restaurant.nombreRestaurante || "N/A",
-                email: restaurant.email || "N/A",
-                totalDelivery: totalDelivery
-            });
-
-            const card = document.createElement('div');
-            card.className = 'user-card';
-            card.innerHTML = `
-                <h3>${restaurant.nombreRestaurante || "Sin nombre"}</h3>
-                <p>${restaurant.email || "Sin email"}</p>
-                <p class="price">Total Delivery: ₲ ${totalDelivery.toLocaleString('es-PY')}</p>
-            `;
-            container.appendChild(card);
-        });
-        
-        setupExcelExport(restaurantDataForExcel);
     });
 }
 
@@ -225,14 +259,13 @@ function setupExcelExport(data) {
         const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
             'Nombre del Restaurante': item.nombre,
             'Email': item.email,
-            'Total Ganado por Delivery (₲)': item.totalDelivery
+            'Total Pendiente (₲)': item.totalDelivery
         })));
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte de Delivery");
         XLSX.writeFile(workbook, `ReporteDelivery_${new Date().toISOString().slice(0,10)}.xlsx`);
     };
 }
-
 
 // --- Lógica de Pedidos ---
 function listenToAllOrders() {
