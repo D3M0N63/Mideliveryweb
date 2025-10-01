@@ -1,6 +1,18 @@
 import { auth, db } from './firebase-config.js'; 
-import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+// Importamos las funciones para inicializar una segunda app
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+// Copiamos la configuración de Firebase para usarla en la app secundaria
+const firebaseConfig = {
+  apiKey: "AIzaSyCUMoE_2vypwKDSjTgvTCf8RZ_SInbirZ4",
+  authDomain: "mi-delivery-2b62c.firebaseapp.com",
+  projectId: "mi-delivery-2b62c",
+  storageBucket: "mi-delivery-2b62c.firebasestorage.app",
+  messagingSenderId: "796070702650",
+  appId: "1:796070702650:web:43977d02ec9485eb324f03"
+};
 
 // --- Verificación de rol y redirección ---
 onAuthStateChanged(auth, async (user) => {
@@ -10,7 +22,6 @@ onAuthStateChanged(auth, async (user) => {
             alert("Acceso denegado.");
             window.location.href = 'index.html';
         } else {
-            // Si el usuario es admin, cargamos todos los datos necesarios.
             loadDashboardData(user);
             setupTabs();
         }
@@ -60,11 +71,9 @@ function loadAdminProfile(user) {
     });
 }
 
-// Creación de usuarios
-// Dentro de admin.js, reemplaza la función handleUserCreation con esta:
-
+// --- Creación de usuarios SIN INICIAR SESIÓN ---
 function handleUserCreation() {
-    const createUserForm = document.getElementById('createUserForm'); // Seleccionamos el formulario
+    const createUserForm = document.getElementById('createUserForm');
     const roleSelect = document.getElementById('userRole');
     const locationUrlGroup = document.getElementById('locationUrl-group');
     const nameInput = document.getElementById('userName');
@@ -73,17 +82,15 @@ function handleUserCreation() {
     const locationUrlInput = document.getElementById('userLocationUrl');
     const errorMsg = document.getElementById('createUserError');
 
-    // Función para mostrar/ocultar el campo de URL
     const toggleLocationField = () => {
         locationUrlGroup.style.display = roleSelect.value === 'restaurante' ? 'block' : 'none';
     };
 
     roleSelect.addEventListener('change', toggleLocationField);
-    toggleLocationField(); // Llamada inicial para establecer el estado correcto
+    toggleLocationField();
 
-    // Escuchamos el evento 'submit' del formulario
     createUserForm.addEventListener('submit', async (event) => {
-        event.preventDefault(); // Prevenimos que la página se recargue
+        event.preventDefault();
 
         const nombre = nameInput.value.trim();
         const email = emailInput.value.trim();
@@ -102,33 +109,48 @@ function handleUserCreation() {
         }
 
         try {
-            // Creamos el usuario en Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            // 1. Inicializamos una app secundaria y temporal de Firebase
+            // Se le da un nombre único para evitar conflictos.
+            const secondaryApp = initializeApp(firebaseConfig, `secondary-app-${Date.now()}`);
+            const secondaryAuth = getAuth(secondaryApp);
+
+            // 2. Creamos el usuario usando la instancia de autenticación secundaria
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
             const user = userCredential.user;
             
-            // Creamos los datos para Firestore
+            // 3. Guardamos los datos en Firestore (usando la base de datos principal 'db')
             const userData = {
                 email: email,
                 role: role,
-                ...(role === 'restaurante' 
-                    ? { nombreRestaurante: nombre, locationUrl: locationUrl } 
-                    : { nombre: nombre })
+                nombreRestaurante: role === 'restaurante' ? nombre : null,
+                nombre: role === 'repartidor' ? nombre : null
             };
-
-            // Guardamos los datos del usuario en Firestore
             await setDoc(doc(db, "users", user.uid), userData);
             
+            // Si es restaurante, creamos su perfil en la colección 'restaurantes'
+            if (role === 'restaurante') {
+                const restaurantData = {
+                    nombreRestaurante: nombre,
+                    locationUrl: locationUrl,
+                    email: email
+                };
+                await setDoc(doc(db, "restaurantes", user.uid), restaurantData);
+            }
+            
             alert(`Usuario ${role} creado con éxito.`);
-            createUserForm.reset(); // Limpia el formulario
-            toggleLocationField(); // Reajusta la visibilidad del campo de URL
+            createUserForm.reset();
+            toggleLocationField();
 
         } catch (error) {
             console.error("Error al crear usuario:", error);
-            errorMsg.textContent = `Error: ${error.message}`;
+            if (error.code === 'auth/email-already-in-use') {
+                errorMsg.textContent = 'Error: El correo electrónico ya está en uso.';
+            } else {
+                errorMsg.textContent = `Error: ${error.message}`;
+            }
         }
     });
 }
-
 
 // Repartidores activos
 function listenToActiveDrivers() {
@@ -164,7 +186,8 @@ async function listenToRestaurants() {
         }
     });
 
-    const q = query(collection(db, "users"), where("role", "==", "restaurante"));
+    // Se cambió la consulta a la colección 'restaurantes'
+    const q = query(collection(db, "restaurantes"));
     onSnapshot(q, (snapshot) => {
         container.innerHTML = '';
         if (snapshot.empty) {
@@ -177,16 +200,16 @@ async function listenToRestaurants() {
             const totalDelivery = deliveryTotals[doc.id] || 0;
             
             restaurantDataForExcel.push({
-                nombre: restaurant.nombreRestaurante || restaurant.nombre,
-                email: restaurant.email,
+                nombre: restaurant.nombreRestaurante || "N/A",
+                email: restaurant.email || "N/A",
                 totalDelivery: totalDelivery
             });
 
             const card = document.createElement('div');
             card.className = 'user-card';
             card.innerHTML = `
-                <h3>${restaurant.nombreRestaurante || restaurant.nombre}</h3>
-                <p>${restaurant.email}</p>
+                <h3>${restaurant.nombreRestaurante || "Sin nombre"}</h3>
+                <p>${restaurant.email || "Sin email"}</p>
                 <p class="price">Total Delivery: ₲ ${totalDelivery.toLocaleString('es-PY')}</p>
             `;
             container.appendChild(card);
