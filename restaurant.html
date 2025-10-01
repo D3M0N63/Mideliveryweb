@@ -20,39 +20,7 @@
 
             <div id="view-create" class="view" style="display:none;">
                 <form id="create-order-form" class="card">
-                    <h2>Datos del Cliente</h2>
-                    <div class="form-row">
-                        <input type="text" id="customer-name" placeholder="Nombre del Cliente" required>
-                        <input type="tel" id="customer-phone" placeholder="Teléfono (Opcional)">
-                    </div>
-                    <input type="text" id="delivery-address" placeholder="Dirección de Entrega" required>
-                    
-                    <h2>Añadir Productos</h2>
-                    <div class="form-row">
-                        <select id="products-spinner"></select>
-                        <input type="number" id="product-quantity" value="1" min="1">
-                        <button type="button" id="add-product-btn" class="action-btn-small">Añadir</button>
-                    </div>
-                    <div class="form-row">
-                        <select id="drinks-spinner"></select>
-                        <input type="number" id="drink-quantity" value="1" min="1">
-                        <button type="button" id="add-drink-btn" class="action-btn-small">Añadir</button>
-                    </div>
-
-                    <h2>Resumen del Pedido</h2>
-                    <div id="selected-items-container"></div>
-                    
-                    <h2>Costo y Pago</h2>
-                    <input type="number" id="delivery-cost" placeholder="Costo de Delivery" required>
-                    <div class="payment-options">
-                        <label><input type="radio" name="payment" value="Efectivo" checked> Efectivo</label>
-                        <label><input type="radio" name="payment" value="Transferencia"> Transferencia</label>
-                    </div>
-                    
-                    <h2 id="total-display">Total: ₲ 0</h2>
-                    <p id="form-error" class="error-message"></p>
-                    <button type="button" id="createOrderButton" class="action-btn">Crear Pedido</button>
-                </form>
+                    </form>
             </div>
             
             <div id="view-products" class="view" style="display:none;">
@@ -60,6 +28,12 @@
                     <h2>Gestionar Productos</h2>
                     <form id="product-form">
                         <input type="hidden" id="product-id">
+
+                        <div class="product-image-container">
+                            <img id="product-image-preview" src="https://via.placeholder.com/150" alt="Foto del producto">
+                            <label for="product-image-input" class="change-picture-btn">Añadir/Cambiar Foto</label>
+                            <input type="file" id="product-image-input" accept="image/*" style="display: none;">
+                        </div>
                         <input type="text" id="product-name" placeholder="Nombre del Producto" required>
                         <input type="number" id="product-price" placeholder="Precio" required>
                         <select id="product-category">
@@ -76,34 +50,10 @@
             </div>
 
             <div id="view-history" class="view" style="display:none;">
-                <h2>Historial de Pedidos</h2>
-                <div id="restaurant-orders-container"></div>
-            </div>
+                </div>
 
             <div id="view-profile" class="view" style="display:none;">
-                <div class="card">
-                    <h2>Mi Perfil</h2>
-                    
-                    <div class="profile-picture-container">
-                        <img id="profile-picture-preview" src="https://via.placeholder.com/150" alt="Foto de perfil">
-                        <label for="profile-picture-input" class="change-picture-btn">Cambiar Foto</label>
-                        <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
-                    </div>
-
-                    <input type="text" id="profile-name" placeholder="Nombre del Restaurante">
-                    <input type="url" id="profile-location-url" placeholder="URL de Google Maps de tu local">
-                    
-                    <label class="form-label">Coordenadas del Local</label>
-                    <div class="form-row">
-                        <input type="text" id="profile-coordinates" placeholder="Latitud, Longitud" readonly>
-                        <button type="button" id="get-location-btn" class="action-btn-small">Obtener</button>
-                    </div>
-                    <p id="location-feedback" class="feedback-message"></p>
-
-                    <button id="save-profile-btn" class="action-btn">Guardar Perfil</button>
-                    <button id="logoutButton" class="action-btn logout-btn-profile">Cerrar Sesión</button>
                 </div>
-            </div>
         </main>
     </div>
 
@@ -114,31 +64,6 @@
         <button id="btn-history" class="tab-btn">Historial</button>
         <button id="btn-profile" class="tab-btn">Perfil</button>
     </footer>
-
-    <div id="order-detail-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Detalles del Pedido</h2>
-            <div id="modal-body"></div>
-            <div class="modal-actions">
-                <button id="edit-order-info-btn" class="action-btn">Editar Info</button>
-                <button id="manage-status-btn" class="action-btn-secondary">Gestionar Estado</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="edit-order-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button-edit">&times;</span>
-            <h2>Editar Pedido</h2>
-            <input type="hidden" id="edit-order-id">
-            <input type="text" id="edit-customer-name" placeholder="Nombre Cliente">
-            <input type="text" id="edit-customer-phone" placeholder="Teléfono Cliente">
-            <input type="text" id="edit-delivery-address" placeholder="Dirección">
-            <input type="number" id="edit-delivery-cost" placeholder="Costo Delivery">
-            <button id="save-order-changes-btn" class="action-btn">Guardar Cambios</button>
-        </div>
-    </div>
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"></script>
     <script type="module" src="js/firebase-config.js"></script>

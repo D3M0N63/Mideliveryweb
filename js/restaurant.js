@@ -8,6 +8,7 @@ let products = [];
 let selectedItems = [];
 let restaurantLocationUrl = '';
 let profilePictureFile = null;
+let productPictureFile = null;
 
 // --- Autenticación y Carga Inicial ---
 onAuthStateChanged(auth, async (user) => {
@@ -129,6 +130,7 @@ function renderProductsList() {
         const card = document.createElement('div');
         card.className = 'user-card';
         card.innerHTML = `
+            <img class="product-list-image" src="${p.photoURL || 'https://via.placeholder.com/80'}" alt="${p.nombre}">
             <div class="product-info">
                 <p><strong>${p.nombre}</strong></p>
                 <p>₲ ${p.precio.toLocaleString('es-PY')} (${p.categoria})</p>
@@ -144,27 +146,62 @@ function renderProductsList() {
     container.querySelectorAll('.delete').forEach(btn => btn.onclick = () => deleteProduct(btn.dataset.id));
 }
 
+document.getElementById('product-image-input').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        productPictureFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('product-image-preview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
 document.getElementById('save-product-btn').addEventListener('click', async () => {
     const id = document.getElementById('product-id').value;
     const nombre = document.getElementById('product-name').value.trim();
     const precio = parseFloat(document.getElementById('product-price').value);
     const categoria = document.getElementById('product-category').value;
+    
     if (!nombre || isNaN(precio)) {
         alert("Por favor, completa el nombre y el precio del producto.");
         return;
     }
-    const productData = { nombre, precio, categoria };
+
     try {
+        let photoURL = null;
+        if (productPictureFile) {
+            const fileName = `product-images/${currentUserId}-${Date.now()}`;
+            const { data, error } = await supabase.storage.from('Midelivery').upload(fileName, productPictureFile, {
+                contentType: productPictureFile.type
+            });
+            if (error) throw error;
+            const { data: urlData } = supabase.storage.from('Midelivery').getPublicUrl(fileName);
+            photoURL = urlData.publicUrl;
+        }
+
+        const productData = { nombre, precio, categoria };
+        if (photoURL) {
+            productData.photoURL = photoURL;
+        }
+
         if (id) {
+            if (!photoURL) {
+                const existingProduct = products.find(p => p.id === id);
+                productData.photoURL = existingProduct.photoURL || null;
+            }
             await updateDoc(doc(db, `users/${currentUserId}/productos`, id), productData);
         } else {
             await addDoc(collection(db, `users/${currentUserId}/productos`), productData);
         }
+
         alert(id ? "Producto actualizado." : "Producto añadido.");
         resetProductForm();
+
     } catch (e) {
         console.error("Error guardando producto: ", e);
-        alert("No se pudo guardar el producto.");
+        alert(`No se pudo guardar el producto. Error: ${e.message}`);
     }
 });
 
@@ -175,7 +212,10 @@ function editProduct(id) {
         document.getElementById('product-name').value = product.nombre;
         document.getElementById('product-price').value = product.precio;
         document.getElementById('product-category').value = product.categoria;
+        document.getElementById('product-image-preview').src = product.photoURL || 'https://via.placeholder.com/150';
+        
         document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+        document.getElementById('product-form').scrollIntoView({ behavior: 'smooth' });
     }
 }
 
@@ -196,6 +236,8 @@ function resetProductForm() {
     document.getElementById('product-form').reset();
     document.getElementById('product-id').value = '';
     document.getElementById('cancel-edit-btn').style.display = 'none';
+    document.getElementById('product-image-preview').src = 'https://via.placeholder.com/150';
+    productPictureFile = null;
 }
 
 
@@ -512,7 +554,7 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
                 .upload(fileName, profilePictureFile, {
                     cacheControl: '3600',
                     upsert: false,
-                    contentType: profilePictureFile.type // Corrección para el error 400
+                    contentType: profilePictureFile.type
                 });
 
             if (error) throw error;
