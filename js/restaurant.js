@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js'; 
 import { supabase } from './supabase-config.js';
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc, serverTimestamp, deleteDoc, orderBy, GeoPoint, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 let currentUserId = null;
@@ -16,9 +16,7 @@ onAuthStateChanged(auth, async (user) => {
         currentUserId = user.uid;
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists() && userDoc.data().role === 'restaurante') {
-            const userData = userDoc.data();
-            restaurantLocationUrl = userData.locationUrl || '';
-            document.getElementById('restaurant-name').textContent = userData.nombreRestaurante || "Mi Restaurante";
+            // El nombre del restaurante se carga en loadProfile desde la colección 'restaurantes'
             setupTabs();
             loadRestaurantData();
         } else {
@@ -34,7 +32,7 @@ function loadRestaurantData() {
     listenToWebOrders(); 
     listenToProducts();
     listenToOrders();
-    loadProfile();
+    loadProfile(); // Carga los datos del perfil desde la colección 'restaurantes'
     setupCreateOrderForm();
     setupModalListeners();
 }
@@ -88,6 +86,7 @@ function listenToWebOrders() {
     });
 }
 
+// 👇 FUNCIÓN MODIFICADA 👇
 async function acceptOrder(orderId) {
     const orderRef = doc(db, "pedidos", orderId);
     try {
@@ -96,10 +95,16 @@ async function acceptOrder(orderId) {
             alert("Este pedido ya fue tomado por otro restaurante.");
             return;
         }
+        
+        // Obtenemos la URL de ubicación desde la colección 'restaurantes'
+        const restaurantDoc = await getDoc(doc(db, "restaurantes", currentUserId));
+        const restaurantData = restaurantDoc.data();
+        const direccionRestaurante = restaurantData?.locationUrl || '';
+
         await updateDoc(orderRef, {
             restauranteId: currentUserId,
             estado: "available",
-            direccionRestaurante: restaurantLocationUrl
+            direccionRestaurante: direccionRestaurante // Usamos la URL obtenida
         });
         alert("¡Pedido aceptado! Ahora lo encontrarás en tu historial.");
     } catch (error) {
@@ -110,6 +115,7 @@ async function acceptOrder(orderId) {
 
 
 // --- Gestión de Productos ---
+// (Esta sección no necesita cambios y permanece igual)
 function listenToProducts() {
     const q = query(collection(db, `users/${currentUserId}/productos`));
     onSnapshot(q, (snapshot) => {
@@ -158,7 +164,6 @@ document.getElementById('product-image-input').addEventListener('change', (event
     }
 });
 
-// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-product-btn').addEventListener('click', async () => {
     const id = document.getElementById('product-id').value;
     const nombre = document.getElementById('product-name').value.trim();
@@ -173,34 +178,25 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
     try {
         let photoURL = null;
         if (productPictureFile) {
-            console.log("Iniciando subida de imagen de producto...");
             const fileName = `product-images/${currentUserId}-${Date.now()}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage.from('Midelivery').upload(fileName, productPictureFile, {
+            const { data, error } = await supabase.storage.from('Midelivery').upload(fileName, productPictureFile, {
                 contentType: productPictureFile.type
             });
-
-            console.log("Respuesta de Supabase (upload):", { uploadData, uploadError });
-            if (uploadError) throw uploadError;
-
-            console.log("Obteniendo URL pública...");
+            if (error) throw error;
             const { data: urlData } = supabase.storage.from('Midelivery').getPublicUrl(fileName);
-            
-            console.log("Respuesta de Supabase (getPublicUrl):", urlData);
             photoURL = urlData.publicUrl;
         }
 
         const productData = { nombre, precio, categoria };
         if (photoURL) {
             productData.photoURL = photoURL;
-        } else if (id) {
-            // Mantener la foto anterior si no se sube una nueva al editar
-            const existingProduct = products.find(p => p.id === id);
-            productData.photoURL = existingProduct?.photoURL || null;
         }
 
-        console.log("Datos a guardar en Firebase:", productData);
-
         if (id) {
+            if (!photoURL) {
+                const existingProduct = products.find(p => p.id === id);
+                productData.photoURL = existingProduct.photoURL || null;
+            }
             await updateDoc(doc(db, `users/${currentUserId}/productos`, id), productData);
         } else {
             await addDoc(collection(db, `users/${currentUserId}/productos`), productData);
@@ -214,7 +210,6 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
         alert(`No se pudo guardar el producto. Error: ${e.message}`);
     }
 });
-
 
 function editProduct(id) {
     const product = products.find(p => p.id === id);
@@ -253,6 +248,7 @@ function resetProductForm() {
 
 
 // --- Creación de Pedidos ---
+// (Esta sección no necesita cambios y permanece igual)
 function populateProductSpinners() {
     const productsSpinner = document.getElementById('products-spinner');
     const drinksSpinner = document.getElementById('drinks-spinner');
@@ -339,6 +335,11 @@ async function createOrder() {
     const subtotal = selectedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
     const total = subtotal + costoDelivery;
     const metodoPago = document.querySelector('input[name="payment"]:checked').value;
+    
+    const restaurantDoc = await getDoc(doc(db, "restaurantes", currentUserId));
+    const restaurantData = restaurantDoc.data();
+    const direccionRestaurante = restaurantData?.locationUrl || '';
+
     const nuevoPedido = {
         nombreCliente,
         direccionCliente,
@@ -346,7 +347,7 @@ async function createOrder() {
         costoDelivery,
         total,
         restauranteId: currentUserId,
-        direccionRestaurante: restaurantLocationUrl,
+        direccionRestaurante: direccionRestaurante,
         estado: "Pendiente",
         timestamp: serverTimestamp(),
         metodoPago,
@@ -367,6 +368,7 @@ async function createOrder() {
 
 
 // --- Historial de Pedidos ---
+// (Esta sección no necesita cambios y permanece igual)
 function listenToOrders() {
     const container = document.getElementById('restaurant-orders-container');
     const q = query(collection(db, "pedidos"), where("restauranteId", "==", currentUserId), orderBy("timestamp", "desc"));
@@ -397,6 +399,7 @@ function listenToOrders() {
 }
 
 // --- Modales (Detalles y Edición de Pedidos) ---
+// (Esta sección no necesita cambios y permanece igual)
 function setupModalListeners() {
     const detailModal = document.getElementById('order-detail-modal');
     const editModal = document.getElementById('edit-order-modal');
@@ -499,21 +502,32 @@ async function manageOrderStatus(order) {
 
 
 // --- SECCIÓN DE PERFIL ---
+// 👇 FUNCIÓN MODIFICADA 👇
 async function loadProfile() {
-    const docSnap = await getDoc(doc(db, "users", currentUserId));
-    if (docSnap.exists()) {
-        const userData = docSnap.data();
-        document.getElementById('profile-name').value = userData.nombreRestaurante || '';
-        document.getElementById('profile-location-url').value = userData.locationUrl || '';
+    // Carga los datos desde la colección 'restaurantes'
+    const restaurantDoc = await getDoc(doc(db, "restaurantes", currentUserId));
+    if (restaurantDoc.exists()) {
+        const restaurantData = restaurantDoc.data();
+        document.getElementById('restaurant-name').textContent = restaurantData.nombreRestaurante || "Mi Restaurante";
+        document.getElementById('profile-name').value = restaurantData.nombreRestaurante || '';
+        document.getElementById('profile-location-url').value = restaurantData.locationUrl || '';
         
-        if (userData.photoURL) {
-            document.getElementById('profile-picture-preview').src = userData.photoURL;
+        // El campo ahora es 'imagenPortadaUrl'
+        if (restaurantData.imagenPortadaUrl) {
+            document.getElementById('profile-picture-preview').src = restaurantData.imagenPortadaUrl;
         }
 
-        if (userData.coordenadas) {
-            const lat = userData.coordenadas.latitude;
-            const lon = userData.coordenadas.longitude;
+        if (restaurantData.coordenadas) {
+            const lat = restaurantData.coordenadas.latitude;
+            const lon = restaurantData.coordenadas.longitude;
             document.getElementById('profile-coordinates').value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        }
+    } else {
+         // Si no existe, intenta leer el nombre desde 'users' como fallback inicial
+        const userDoc = await getDoc(doc(db, "users", currentUserId));
+        if(userDoc.exists()){
+            document.getElementById('restaurant-name').textContent = userDoc.data().nombreRestaurante || "Mi Restaurante";
+            document.getElementById('profile-name').value = userDoc.data().nombreRestaurante || '';
         }
     }
 }
@@ -557,11 +571,10 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
     saveButton.disabled = true;
 
     try {
-        let photoURL = null;
+        let imageUrl = null;
         if (profilePictureFile) {
-            console.log("Iniciando subida de foto de perfil...");
-            const fileName = `${currentUserId}-${Date.now()}`;
-            const { data: uploadData, error: uploadError } = await supabase
+            const fileName = `restaurant-profiles/${currentUserId}-${Date.now()}`;
+            const { data, error } = await supabase
                 .storage
                 .from('Midelivery')
                 .upload(fileName, profilePictureFile, {
@@ -569,45 +582,59 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
                     upsert: false,
                     contentType: profilePictureFile.type
                 });
-            
-            console.log("Respuesta de Supabase (upload):", { uploadData, uploadError });
-            if (uploadError) throw uploadError;
 
-            console.log("Obteniendo URL pública del perfil...");
+            if (error) throw error;
+
             const { data: urlData } = supabase
                 .storage
                 .from('Midelivery')
                 .getPublicUrl(fileName);
             
-            console.log("Respuesta de Supabase (getPublicUrl):", urlData);
-            photoURL = urlData.publicUrl;
+            imageUrl = urlData.publicUrl;
         }
 
         const nombre = document.getElementById('profile-name').value.trim();
         const url = document.getElementById('profile-location-url').value.trim();
         const coordsString = document.getElementById('profile-coordinates').value.trim();
 
-        const updates = {
-            nombreRestaurante: nombre,
-            locationUrl: url
-        };
+        if (nombre && url) {
+            // Obtenemos la referencia al documento en la colección 'restaurantes'
+            const restaurantDocRef = doc(db, "restaurantes", currentUserId);
+            
+            // Obtenemos el documento actual para no sobreescribir campos existentes
+            const docSnap = await getDoc(restaurantDocRef);
+            const existingData = docSnap.exists() ? docSnap.data() : {};
 
-        if (photoURL) {
-            updates.photoURL = photoURL;
-        }
+            const updates = {
+                ...existingData, // Mantenemos los datos que ya existían
+                nombreRestaurante: nombre,
+                locationUrl: url
+            };
 
-        if (coordsString) {
-            const [lat, lon] = coordsString.split(',').map(Number);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                updates.coordenadas = new GeoPoint(lat, lon);
+            // El campo se llama 'imagenPortadaUrl'
+            if (imageUrl) {
+                updates.imagenPortadaUrl = imageUrl;
             }
-        }
-        
-        console.log("Datos de perfil a actualizar en Firebase:", updates);
-        await updateDoc(doc(db, "users", currentUserId), updates);
-        alert("Perfil actualizado con éxito.");
-        profilePictureFile = null;
 
+            if (coordsString) {
+                const [lat, lon] = coordsString.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    updates.coordenadas = new GeoPoint(lat, lon);
+                }
+            }
+            
+            // Usamos setDoc con merge:true (o simplemente setDoc si ya incluimos existingData)
+            // para crear el documento si no existe, o actualizarlo si ya existe.
+            await setDoc(restaurantDocRef, updates);
+            
+            // Opcional: También actualizamos el nombre en la colección 'users' para consistencia
+            await updateDoc(doc(db, "users", currentUserId), { nombreRestaurante: nombre });
+
+            alert("Perfil actualizado con éxito.");
+            profilePictureFile = null;
+        } else {
+            alert("Por favor, completa el nombre y la URL del perfil.");
+        }
     } catch (error) {
         console.error("Error al actualizar el perfil: ", error);
         alert(`No se pudo actualizar el perfil. Error: ${error.message}`);
