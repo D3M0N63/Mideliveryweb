@@ -112,9 +112,7 @@ async function acceptOrder(orderId) {
 
 
 // --- Gestión de Productos ---
-// 👇 FUNCIÓN MODIFICADA 👇
 function listenToProducts() {
-    // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
     const q = query(collection(db, `restaurantes/${currentUserId}/productos`));
     onSnapshot(q, (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -162,7 +160,6 @@ document.getElementById('product-image-input').addEventListener('change', (event
     }
 });
 
-// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-product-btn').addEventListener('click', async () => {
     const id = document.getElementById('product-id').value;
     const nombre = document.getElementById('product-name').value.trim();
@@ -196,10 +193,8 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
                 const existingProduct = products.find(p => p.id === id);
                 productData.photoURL = existingProduct.photoURL || null;
             }
-            // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
             await updateDoc(doc(db, `restaurantes/${currentUserId}/productos`, id), productData);
         } else {
-            // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
             await addDoc(collection(db, `restaurantes/${currentUserId}/productos`), productData);
         }
 
@@ -226,11 +221,9 @@ function editProduct(id) {
     }
 }
 
-// 👇 FUNCIÓN MODIFICADA 👇
 async function deleteProduct(id) {
     if (confirm("¿Estás seguro de que quieres eliminar este producto?")) {
         try {
-            // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
             await deleteDoc(doc(db, `restaurantes/${currentUserId}/productos`, id));
             alert("Producto eliminado.");
         } catch(e) {
@@ -560,6 +553,7 @@ document.getElementById('get-location-btn').addEventListener('click', () => {
     );
 });
 
+// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-profile-btn').addEventListener('click', async () => {
     const saveButton = document.getElementById('save-profile-btn');
     saveButton.textContent = 'Guardando...';
@@ -595,13 +589,10 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         if (nombre && url) {
             const restaurantDocRef = doc(db, "restaurantes", currentUserId);
             
-            const docSnap = await getDoc(restaurantDocRef);
-            const existingData = docSnap.exists() ? docSnap.data() : {};
-
+            // Este objeto contendrá solo los campos que queremos actualizar o añadir.
             const updates = {
-                ...existingData,
                 nombreRestaurante: nombre,
-                locationUrl: url
+                locationUrl: url,
             };
 
             if (imageUrl) {
@@ -615,8 +606,13 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
                 }
             }
             
-            await setDoc(restaurantDocRef, updates);
+            // Usamos setDoc con { merge: true }
+            // Esto actualiza los campos en 'updates'. Si el documento no existe, lo crea.
+            // Si el documento existe, solo modifica los campos en 'updates',
+            // dejando intactos otros campos que pudieran existir.
+            await setDoc(restaurantDocRef, updates, { merge: true });
             
+            // Opcional: Mantenemos el nombre sincronizado en la colección 'users'
             await updateDoc(doc(db, "users", currentUserId), { nombreRestaurante: nombre });
 
             alert("Perfil actualizado con éxito.");
