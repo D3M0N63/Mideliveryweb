@@ -16,7 +16,6 @@ onAuthStateChanged(auth, async (user) => {
         currentUserId = user.uid;
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists() && userDoc.data().role === 'restaurante') {
-            // El nombre del restaurante se carga en loadProfile desde la colección 'restaurantes'
             setupTabs();
             loadRestaurantData();
         } else {
@@ -32,7 +31,7 @@ function loadRestaurantData() {
     listenToWebOrders(); 
     listenToProducts();
     listenToOrders();
-    loadProfile(); // Carga los datos del perfil desde la colección 'restaurantes'
+    loadProfile();
     setupCreateOrderForm();
     setupModalListeners();
 }
@@ -86,7 +85,6 @@ function listenToWebOrders() {
     });
 }
 
-// 👇 FUNCIÓN MODIFICADA 👇
 async function acceptOrder(orderId) {
     const orderRef = doc(db, "pedidos", orderId);
     try {
@@ -96,7 +94,6 @@ async function acceptOrder(orderId) {
             return;
         }
         
-        // Obtenemos la URL de ubicación desde la colección 'restaurantes'
         const restaurantDoc = await getDoc(doc(db, "restaurantes", currentUserId));
         const restaurantData = restaurantDoc.data();
         const direccionRestaurante = restaurantData?.locationUrl || '';
@@ -104,7 +101,7 @@ async function acceptOrder(orderId) {
         await updateDoc(orderRef, {
             restauranteId: currentUserId,
             estado: "available",
-            direccionRestaurante: direccionRestaurante // Usamos la URL obtenida
+            direccionRestaurante: direccionRestaurante
         });
         alert("¡Pedido aceptado! Ahora lo encontrarás en tu historial.");
     } catch (error) {
@@ -115,9 +112,10 @@ async function acceptOrder(orderId) {
 
 
 // --- Gestión de Productos ---
-// (Esta sección no necesita cambios y permanece igual)
+// 👇 FUNCIÓN MODIFICADA 👇
 function listenToProducts() {
-    const q = query(collection(db, `users/${currentUserId}/productos`));
+    // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
+    const q = query(collection(db, `restaurantes/${currentUserId}/productos`));
     onSnapshot(q, (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderProductsList();
@@ -164,6 +162,7 @@ document.getElementById('product-image-input').addEventListener('change', (event
     }
 });
 
+// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-product-btn').addEventListener('click', async () => {
     const id = document.getElementById('product-id').value;
     const nombre = document.getElementById('product-name').value.trim();
@@ -197,9 +196,11 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
                 const existingProduct = products.find(p => p.id === id);
                 productData.photoURL = existingProduct.photoURL || null;
             }
-            await updateDoc(doc(db, `users/${currentUserId}/productos`, id), productData);
+            // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
+            await updateDoc(doc(db, `restaurantes/${currentUserId}/productos`, id), productData);
         } else {
-            await addDoc(collection(db, `users/${currentUserId}/productos`), productData);
+            // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
+            await addDoc(collection(db, `restaurantes/${currentUserId}/productos`), productData);
         }
 
         alert(id ? "Producto actualizado." : "Producto añadido.");
@@ -225,10 +226,12 @@ function editProduct(id) {
     }
 }
 
+// 👇 FUNCIÓN MODIFICADA 👇
 async function deleteProduct(id) {
     if (confirm("¿Estás seguro de que quieres eliminar este producto?")) {
         try {
-            await deleteDoc(doc(db, `users/${currentUserId}/productos`, id));
+            // La ruta ahora apunta a la subcolección dentro de 'restaurantes'
+            await deleteDoc(doc(db, `restaurantes/${currentUserId}/productos`, id));
             alert("Producto eliminado.");
         } catch(e) {
             alert("Error al eliminar producto.");
@@ -248,7 +251,6 @@ function resetProductForm() {
 
 
 // --- Creación de Pedidos ---
-// (Esta sección no necesita cambios y permanece igual)
 function populateProductSpinners() {
     const productsSpinner = document.getElementById('products-spinner');
     const drinksSpinner = document.getElementById('drinks-spinner');
@@ -368,7 +370,6 @@ async function createOrder() {
 
 
 // --- Historial de Pedidos ---
-// (Esta sección no necesita cambios y permanece igual)
 function listenToOrders() {
     const container = document.getElementById('restaurant-orders-container');
     const q = query(collection(db, "pedidos"), where("restauranteId", "==", currentUserId), orderBy("timestamp", "desc"));
@@ -399,7 +400,6 @@ function listenToOrders() {
 }
 
 // --- Modales (Detalles y Edición de Pedidos) ---
-// (Esta sección no necesita cambios y permanece igual)
 function setupModalListeners() {
     const detailModal = document.getElementById('order-detail-modal');
     const editModal = document.getElementById('edit-order-modal');
@@ -502,9 +502,7 @@ async function manageOrderStatus(order) {
 
 
 // --- SECCIÓN DE PERFIL ---
-// 👇 FUNCIÓN MODIFICADA 👇
 async function loadProfile() {
-    // Carga los datos desde la colección 'restaurantes'
     const restaurantDoc = await getDoc(doc(db, "restaurantes", currentUserId));
     if (restaurantDoc.exists()) {
         const restaurantData = restaurantDoc.data();
@@ -512,7 +510,6 @@ async function loadProfile() {
         document.getElementById('profile-name').value = restaurantData.nombreRestaurante || '';
         document.getElementById('profile-location-url').value = restaurantData.locationUrl || '';
         
-        // El campo ahora es 'imagenPortadaUrl'
         if (restaurantData.imagenPortadaUrl) {
             document.getElementById('profile-picture-preview').src = restaurantData.imagenPortadaUrl;
         }
@@ -523,7 +520,6 @@ async function loadProfile() {
             document.getElementById('profile-coordinates').value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
         }
     } else {
-         // Si no existe, intenta leer el nombre desde 'users' como fallback inicial
         const userDoc = await getDoc(doc(db, "users", currentUserId));
         if(userDoc.exists()){
             document.getElementById('restaurant-name').textContent = userDoc.data().nombreRestaurante || "Mi Restaurante";
@@ -564,7 +560,6 @@ document.getElementById('get-location-btn').addEventListener('click', () => {
     );
 });
 
-// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-profile-btn').addEventListener('click', async () => {
     const saveButton = document.getElementById('save-profile-btn');
     saveButton.textContent = 'Guardando...';
@@ -598,20 +593,17 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         const coordsString = document.getElementById('profile-coordinates').value.trim();
 
         if (nombre && url) {
-            // Obtenemos la referencia al documento en la colección 'restaurantes'
             const restaurantDocRef = doc(db, "restaurantes", currentUserId);
             
-            // Obtenemos el documento actual para no sobreescribir campos existentes
             const docSnap = await getDoc(restaurantDocRef);
             const existingData = docSnap.exists() ? docSnap.data() : {};
 
             const updates = {
-                ...existingData, // Mantenemos los datos que ya existían
+                ...existingData,
                 nombreRestaurante: nombre,
                 locationUrl: url
             };
 
-            // El campo se llama 'imagenPortadaUrl'
             if (imageUrl) {
                 updates.imagenPortadaUrl = imageUrl;
             }
@@ -623,11 +615,8 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
                 }
             }
             
-            // Usamos setDoc con merge:true (o simplemente setDoc si ya incluimos existingData)
-            // para crear el documento si no existe, o actualizarlo si ya existe.
             await setDoc(restaurantDocRef, updates);
             
-            // Opcional: También actualizamos el nombre en la colección 'users' para consistencia
             await updateDoc(doc(db, "users", currentUserId), { nombreRestaurante: nombre });
 
             alert("Perfil actualizado con éxito.");
