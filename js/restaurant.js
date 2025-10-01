@@ -158,6 +158,7 @@ document.getElementById('product-image-input').addEventListener('change', (event
     }
 });
 
+// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-product-btn').addEventListener('click', async () => {
     const id = document.getElementById('product-id').value;
     const nombre = document.getElementById('product-name').value.trim();
@@ -172,25 +173,34 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
     try {
         let photoURL = null;
         if (productPictureFile) {
+            console.log("Iniciando subida de imagen de producto...");
             const fileName = `product-images/${currentUserId}-${Date.now()}`;
-            const { data, error } = await supabase.storage.from('Midelivery').upload(fileName, productPictureFile, {
+            const { data: uploadData, error: uploadError } = await supabase.storage.from('Midelivery').upload(fileName, productPictureFile, {
                 contentType: productPictureFile.type
             });
-            if (error) throw error;
+
+            console.log("Respuesta de Supabase (upload):", { uploadData, uploadError });
+            if (uploadError) throw uploadError;
+
+            console.log("Obteniendo URL pública...");
             const { data: urlData } = supabase.storage.from('Midelivery').getPublicUrl(fileName);
+            
+            console.log("Respuesta de Supabase (getPublicUrl):", urlData);
             photoURL = urlData.publicUrl;
         }
 
         const productData = { nombre, precio, categoria };
         if (photoURL) {
             productData.photoURL = photoURL;
+        } else if (id) {
+            // Mantener la foto anterior si no se sube una nueva al editar
+            const existingProduct = products.find(p => p.id === id);
+            productData.photoURL = existingProduct?.photoURL || null;
         }
 
+        console.log("Datos a guardar en Firebase:", productData);
+
         if (id) {
-            if (!photoURL) {
-                const existingProduct = products.find(p => p.id === id);
-                productData.photoURL = existingProduct.photoURL || null;
-            }
             await updateDoc(doc(db, `users/${currentUserId}/productos`, id), productData);
         } else {
             await addDoc(collection(db, `users/${currentUserId}/productos`), productData);
@@ -204,6 +214,7 @@ document.getElementById('save-product-btn').addEventListener('click', async () =
         alert(`No se pudo guardar el producto. Error: ${e.message}`);
     }
 });
+
 
 function editProduct(id) {
     const product = products.find(p => p.id === id);
@@ -539,6 +550,7 @@ document.getElementById('get-location-btn').addEventListener('click', () => {
     );
 });
 
+// 👇 FUNCIÓN MODIFICADA 👇
 document.getElementById('save-profile-btn').addEventListener('click', async () => {
     const saveButton = document.getElementById('save-profile-btn');
     saveButton.textContent = 'Guardando...';
@@ -547,8 +559,9 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
     try {
         let photoURL = null;
         if (profilePictureFile) {
+            console.log("Iniciando subida de foto de perfil...");
             const fileName = `${currentUserId}-${Date.now()}`;
-            const { data, error } = await supabase
+            const { data: uploadData, error: uploadError } = await supabase
                 .storage
                 .from('Midelivery')
                 .upload(fileName, profilePictureFile, {
@@ -556,14 +569,17 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
                     upsert: false,
                     contentType: profilePictureFile.type
                 });
+            
+            console.log("Respuesta de Supabase (upload):", { uploadData, uploadError });
+            if (uploadError) throw uploadError;
 
-            if (error) throw error;
-
+            console.log("Obteniendo URL pública del perfil...");
             const { data: urlData } = supabase
                 .storage
                 .from('Midelivery')
                 .getPublicUrl(fileName);
             
+            console.log("Respuesta de Supabase (getPublicUrl):", urlData);
             photoURL = urlData.publicUrl;
         }
 
@@ -571,29 +587,27 @@ document.getElementById('save-profile-btn').addEventListener('click', async () =
         const url = document.getElementById('profile-location-url').value.trim();
         const coordsString = document.getElementById('profile-coordinates').value.trim();
 
-        if (nombre && url) {
-            const updates = {
-                nombreRestaurante: nombre,
-                locationUrl: url
-            };
+        const updates = {
+            nombreRestaurante: nombre,
+            locationUrl: url
+        };
 
-            if (photoURL) {
-                updates.photoURL = photoURL;
-            }
-
-            if (coordsString) {
-                const [lat, lon] = coordsString.split(',').map(Number);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    updates.coordenadas = new GeoPoint(lat, lon);
-                }
-            }
-            
-            await updateDoc(doc(db, "users", currentUserId), updates);
-            alert("Perfil actualizado con éxito.");
-            profilePictureFile = null;
-        } else {
-            alert("Por favor, completa el nombre y la URL del perfil.");
+        if (photoURL) {
+            updates.photoURL = photoURL;
         }
+
+        if (coordsString) {
+            const [lat, lon] = coordsString.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                updates.coordenadas = new GeoPoint(lat, lon);
+            }
+        }
+        
+        console.log("Datos de perfil a actualizar en Firebase:", updates);
+        await updateDoc(doc(db, "users", currentUserId), updates);
+        alert("Perfil actualizado con éxito.");
+        profilePictureFile = null;
+
     } catch (error) {
         console.error("Error al actualizar el perfil: ", error);
         alert(`No se pudo actualizar el perfil. Error: ${error.message}`);
